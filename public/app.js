@@ -129,7 +129,7 @@ function canEditReservation(reservation) {
 }
 
 function getCatalogQuantityInput(itemId) {
-  return itemRowsEl.querySelector(`input[name="qty_${itemId}"]`);
+  return catalogEl.querySelector(`input[name="qty_${CSS.escape(itemId)}"]`);
 }
 
 function getApprovalLabel(approvalStatus) {
@@ -505,16 +505,6 @@ function renderWarehouseSelect() {
 
 function renderItemRows() {
   itemRowsEl.innerHTML = "";
-  for (const item of items) {
-    const row = document.createElement("label");
-    row.className = "item-row";
-    row.innerHTML = `
-      <span>${item.name} ${item.size} <small>(stock ${item.stockTotal})</small></span>
-      <input type="number" name="qty_${item.id}" min="0" step="1" value="0" />
-      <span class="warehouse-chip">${getWarehouseLabel(item.warehouseId)}</span>
-    `;
-    itemRowsEl.appendChild(row);
-  }
 }
 
 function renderCatalog() {
@@ -544,6 +534,10 @@ function renderCatalog() {
           <div>Propiedades: ${item.properties.join(", ")}</div>
           ${String(item.category || "").toLowerCase().includes("silla") ? `<div>Cojín: ${getCushionLabel(item.cushionOption)}</div>` : ""}
         </div>
+        <label class="catalog-item-qty">
+          <span>Cantidad a reservar</span>
+          <input type="number" name="qty_${escapeHtml(item.id)}" min="0" step="1" value="0" />
+        </label>
         ${
           currentUser && currentUser.role === "admin"
             ? `<div class="card-actions">
@@ -587,6 +581,12 @@ function renderCatalog() {
       event.stopPropagation();
       const itemId = event.currentTarget.getAttribute("data-item-id");
       openItem(itemId);
+    });
+  });
+
+  catalogEl.querySelectorAll(".catalog-item-qty input").forEach((input) => {
+    input.addEventListener("click", (event) => {
+      event.stopPropagation();
     });
   });
 }
