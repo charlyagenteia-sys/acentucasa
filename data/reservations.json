@@ -1,0 +1,115 @@
+[
+  {
+    "id": "res-1780690970992",
+    "createdAt": "2026-06-05T20:22:50.992Z",
+    "customerName": "Pancracio soto soto",
+    "phone": "966471132",
+    "notes": "evento pancrasio",
+    "startDate": "2026-06-20",
+    "endDate": "2026-06-21",
+    "status": "confirmed",
+    "items": [
+      {
+        "itemId": "item-plato-base-plaque-28",
+        "quantity": 16
+      },
+      {
+        "itemId": "item-plato-servilleta-plaque-19",
+        "quantity": 16
+      },
+      {
+        "itemId": "item-fuente-oval-niquel-37x27",
+        "quantity": 2
+      },
+      {
+        "itemId": "item-bandeja-redonda-garzon-40",
+        "quantity": 2
+      },
+      {
+        "itemId": "item-bandeja-plaque-54x32",
+        "quantity": 10
+      },
+      {
+        "itemId": "item-silla-chateau-dorada",
+        "quantity": 660
+      }
+    ],
+    "totalCLP": 997600,
+    "totalLabel": "$997.600",
+    "updatedAt": "2026-06-05T22:57:38.117Z"
+  },
+  {
+    "id": "res-1780702623086",
+    "createdAt": "2026-06-05T23:37:03.086Z",
+    "customerName": "juan izquierdo correa",
+    "phone": "966471132",
+    "notes": "",
+    "startDate": "2026-06-06",
+    "endDate": "2026-06-07",
+    "status": "confirmed",
+    "items": [
+      {
+        "itemId": "item-plato-base-plaque-28",
+        "quantity": 100
+      },
+      {
+        "itemId": "item-plato-servilleta-plaque-19",
+        "quantity": 10
+      },
+      {
+        "itemId": "item-bandeja-redonda-garzon-40",
+        "quantity": 5
+      },
+      {
+        "itemId": "item-bandeja-plaque-54x32",
+        "quantity": 5
+      },
+      {
+        "itemId": "item-silla-chateau-dorada",
+        "quantity": 180
+      }
+    ],
+    "totalCLP": 445000,
+    "totalLabel": "$445.000"
+  },
+  {
+    "id": "res-1781534526580",
+    "createdAt": "2026-06-15T14:42:06.580Z",
+    "customerName": "Hija Paulina",
+    "phone": "9 6647 1132",
+    "notes": "",
+    "startDate": "2026-06-19",
+    "endDate": "2026-06-21",
+    "status": "confirmed",
+    "warehouseId": "ppal-izco",
+    "approvalStatus": "pending",
+    "approvalReason": "Reserva solicitada para Ppal Izco",
+    "approvalUpdatedAt": null,
+    "approvalUpdatedBy": null,
+    "items": [
+      {
+        "itemId": "item-silla-cruceta",
+        "quantity": 200
+      },
+      {
+        "itemId": "item-silla-chievari-madera",
+        "quantity": 9
+      },
+      {
+        "itemId": "item-23e36b84",
+        "quantity": 100
+      },
+      {
+        "itemId": "item-41c838ff",
+        "quantity": 8
+      },
+      {
+        "itemId": "item-82b1b3c8",
+        "quantity": 4
+      }
+    ],
+    "totalCLP": 344600,
+    "totalLabel": "$344.600",
+    "updatedAt": "2026-06-15T14:43:43.596Z"
+  }
+]

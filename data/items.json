@@ -1,0 +1,224 @@
+[
+  {
+    "id": "item-plato-base-plaque-28",
+    "name": "Plato base plaqué",
+    "category": "Platos",
+    "size": "28 cm",
+    "stockTotal": 108,
+    "unitPriceCLP": 1600,
+    "warehouseId": "ppal-izco",
+    "cushionOption": "none",
+    "properties": [
+      "Terminación plaqué",
+      "Uso: plato base"
+    ],
+    "imageRef": "media://inbound/item-plato-base-plaque-28-1781530702675.jpg",
+    "updatedAt": "2026-06-15T13:38:22.676Z"
+  },
+  {
+    "id": "item-plato-servilleta-plaque-19",
+    "name": "Plato servilleta de plaqué",
+    "category": "Platos",
+    "size": "19 cm",
+    "stockTotal": 88,
+    "unitPriceCLP": 800,
+    "warehouseId": "ppal-izco",
+    "cushionOption": "none",
+    "properties": [
+      "Terminación plaqué",
+      "Uso: plato servilleta"
+    ],
+    "imageRef": "media://inbound/7c5e0979-1b9f-4346-bb48-4b8bde9fe37c.jpg"
+  },
+  {
+    "id": "item-fuente-oval-niquel-37x27",
+    "name": "Fuente oval níquel",
+    "category": "Fuentes",
+    "size": "37 x 27 cm",
+    "stockTotal": 17,
+    "unitPriceCLP": 600,
+    "warehouseId": "ppal-izco",
+    "cushionOption": "none",
+    "properties": [
+      "Terminación níquel",
+      "Forma oval"
+    ],
+    "imageRef": "media://inbound/9018414f-230d-4774-a901-2053d5aa48a8.jpg"
+  },
+  {
+    "id": "item-bandeja-redonda-garzon-40",
+    "name": "Bandeja redonda garzón plaqué",
+    "category": "Bandejas",
+    "size": "40 cm",
+    "stockTotal": 24,
+    "unitPriceCLP": 2000,
+    "warehouseId": "jp",
+    "cushionOption": "none",
+    "properties": [
+      "Terminación plaqué",
+      "Formato garzón"
+    ],
+    "imageRef": "media://inbound/4b8d6159-8cb8-47b2-b658-46b07c528742.jpg"
+  },
+  {
+    "id": "item-bandeja-plaque-54x32",
+    "name": "Bandeja plaqué",
+    "category": "Bandejas",
+    "size": "54 x 32 cm",
+    "stockTotal": 20,
+    "unitPriceCLP": 3000,
+    "warehouseId": "jp",
+    "cushionOption": "none",
+    "properties": [
+      "Terminación plaqué",
+      "Formato rectangular"
+    ],
+    "imageRef": "media://inbound/abf28a8e-3270-4a78-a832-ddfcb6495b93.jpg"
+  },
+  {
+    "id": "item-silla-chateau-dorada",
+    "name": "Silla Chateau dorada",
+    "category": "Sillas",
+    "size": "Estandar",
+    "stockTotal": 1086,
+    "unitPriceCLP": 1400,
+    "warehouseId": "amelita",
+    "cushionOption": "none",
+    "properties": [
+      "Color dorado",
+      "Modelo Chateau"
+    ],
+    "imageRef": "media://inbound/9e94edb8-05b7-4765-93fe-6ecd65c246dc.jpg",
+    "updatedAt": "2026-06-15T13:46:05.003Z"
+  },
+  {
+    "id": "item-silla-cruceta",
+    "name": "Silla cruceta ( crosback antigua)",
+    "category": "Sillas",
+    "size": "Estandar",
+    "stockTotal": 568,
+    "unitPriceCLP": 1400,
+    "warehouseId": "amelita",
+    "cushionOption": "none",
+    "properties": [
+      "Modelo Cruceta",
+      "Color madera"
+    ],
+    "imageRef": "media://inbound/18fe7f2e-b2ed-46bd-97ea-84250df6c6dd.jpg",
+    "updatedAt": "2026-06-15T13:46:55.966Z"
+  },
+  {
+    "id": "item-silla-chievari-madera",
+    "name": "Silla chievari color madera",
+    "category": "Sillas",
+    "size": "Estandar",
+    "stockTotal": 509,
+    "unitPriceCLP": 1400,
+    "warehouseId": "mama",
+    "cushionOption": "none",
+    "properties": [
+      "Modelo Chievari",
+      "Color madera"
+    ],
+    "imageRef": "media://inbound/265cff03-f418-4956-908a-859aa4ee6be9.jpg",
+    "updatedAt": "2026-06-15T13:47:29.703Z"
+  },
+  {
+    "id": "item-23e36b84",
+    "name": "Silla cané medallon",
+    "category": "Sillas",
+    "size": "55 x45",
+    "stockTotal": 120,
+    "unitPriceCLP": 0,
+    "warehouseId": "mama",
+    "cushionOption": "none",
+    "imageRef": "media://inbound/item-23e36b84-1781532650544.png",
+    "properties": [],
+    "createdAt": "2026-06-15T14:10:50.528Z",
+    "updatedAt": "2026-06-15T14:10:50.545Z"
+  },
+  {
+    "id": "item-41c838ff",
+    "name": "Silla brazo nueva",
+    "category": "Sillas",
+    "size": "55 x45",
+    "stockTotal": 75,
+    "unitPriceCLP": 4000,
+    "warehouseId": "jp",
+    "cushionOption": "none",
+    "imageRef": "",
+    "properties": [],
+    "createdAt": "2026-06-15T14:16:23.702Z",
+    "updatedAt": "2026-06-15T14:16:23.702Z"
+  },
+  {
+    "id": "item-82b1b3c8",
+    "name": "silla crossback con brazo",
+    "category": "Sillas",
+    "size": "55 x45",
+    "stockTotal": 5,
+    "unitPriceCLP": 5000,
+    "warehouseId": "ppal-izco",
+    "cushionOption": "none",
+    "imageRef": "",
+    "properties": [],
+    "createdAt": "2026-06-15T14:31:31.846Z",
+    "updatedAt": "2026-06-15T14:31:31.846Z"
+  },
+  {
+    "id": "item-24626417",
+    "name": "Silla crossback fierro blanca",
+    "category": "Sillas",
+    "size": "55 x45",
+    "stockTotal": 55,
+    "unitPriceCLP": 0,
+    "warehouseId": "ppal-izco",
+    "cushionOption": "none",
+    "imageRef": "",
+    "properties": [],
+    "createdAt": "2026-06-15T14:32:25.380Z",
+    "updatedAt": "2026-06-15T14:32:25.380Z"
+  },
+  {
+    "id": "item-b3d0a213",
+    "name": "silla crossback nueva clarita",
+    "category": "Sillas",
+    "size": "55 x45",
+    "stockTotal": 455,
+    "unitPriceCLP": 4000,
+    "warehouseId": "ppal-izco",
+    "cushionOption": "none",
+    "imageRef": "",
+    "properties": [],
+    "createdAt": "2026-06-15T14:33:19.075Z",
+    "updatedAt": "2026-06-15T14:33:19.075Z"
+  },
+  {
+    "id": "item-5102a698",
+    "name": "silla roja metal",
+    "category": "Sillas",
+    "size": "55 x45",
+    "stockTotal": 25,
+    "unitPriceCLP": 5000,
+    "warehouseId": "ppal-izco",
+    "cushionOption": "none",
+    "imageRef": "",
+    "properties": [],
+    "createdAt": "2026-06-15T14:34:46.029Z",
+    "updatedAt": "2026-06-15T14:34:46.029Z"
+  },
+  {
+    "id": "item-8486db79",
+    "name": "Silla azul metal",
+    "category": "Sillas",
+    "size": "55 x45",
+    "stockTotal": 5,
+    "unitPriceCLP": 5000,
+    "warehouseId": "ppal-izco",
+    "cushionOption": "none",
+    "imageRef": "",
+    "properties": [],
+    "createdAt": "2026-06-15T14:35:14.853Z",
+    "updatedAt": "2026-06-15T14:35:14.853Z"
+  }
+]

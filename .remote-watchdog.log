@@ -1,0 +1,20 @@
+[2026-06-05 19:15:08] watchdog started
+[2026-06-05 19:15:09] check failed (1/2)
+[2026-06-05 19:15:39] check failed (2/2)
+[2026-06-05 19:15:39] restarting remote-up
+LOCAL=200 PUBLIC=200
+URL=https://beige-cases-try.loca.lt
+PASSWORD_HINT=200.89.48.37
+[2026-06-05 19:15:42] restart ok
+[2026-06-05 19:26:50] watchdog started
+[2026-06-05 19:27:16] watchdog started
+[2026-06-05 19:28:22] watchdog started
+[2026-06-05 19:28:31] watchdog started
+[2026-06-05 19:32:56] watchdog started
+[2026-06-05 19:32:56] check failed (1/2)
+[2026-06-05 22:59:54] watchdog started
+[2026-06-05 22:59:55] check failed (1/2)
+[2026-06-05 23:01:18] watchdog started
+[2026-06-05 23:01:28] watchdog started
+[2026-06-05 23:01:29] check failed (1/2)
+[2026-06-05 23:14:24] watchdog started

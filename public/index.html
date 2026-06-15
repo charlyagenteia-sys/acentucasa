@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arriendo Plaqué - MVP</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Arriendo Plaqué</h1>
+      <p>MVP local: calendario, reservas y stock diario</p>
+      <div id="auth-bar" class="auth-bar hidden">
+        <span id="current-user-label"></span>
+        <button id="logout-btn" type="button" class="secondary">Cerrar sesión</button>
+      </div>
+    </header>
+
+    <main id="login-layout" class="layout auth-layout">
+      <section class="panel auth-panel">
+        <h2>Acceso autorizado</h2>
+        <p>Ingresa con uno de los 5 usuarios habilitados.</p>
+        <form id="login-form">
+          <label>Usuario<input name="username" required autocomplete="username" /></label>
+          <label>Clave<input name="password" type="password" required autocomplete="current-password" /></label>
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="login-status" class="status"></p>
+      </section>
+    </main>
+
+    <main id="app-layout" class="layout hidden">
+      <section class="panel">
+        <h2 id="reservation-form-title">Nueva reserva</h2>
+        <form id="reservation-form">
+          <label>Nombre cliente<input name="customerName" required /></label>
+          <label>Teléfono<input name="phone" /></label>
+          <label>Fecha retiro<input type="date" name="startDate" required /></label>
+          <label>Fecha devolución<input type="date" name="endDate" required /></label>
+          <label>Estado inicial
+            <select name="status">
+              <option value="confirmed">Confirmada</option>
+              <option value="pending">Pendiente</option>
+            </select>
+          </label>
+          <label>Bodega solicitada
+            <select name="warehouseId" id="warehouse-select">
+              <option value="">Sin bodega específica</option>
+            </select>
+          </label>
+          <p id="warehouse-alert" class="status approval-banner"></p>
+          <div id="item-rows"></div>
+          <label>Notas<textarea name="notes" rows="2"></textarea></label>
+          <button id="reservation-submit-btn" type="submit">Guardar reserva</button>
+          <button id="cancel-edit-btn" type="button" class="secondary hidden">Cancelar edición</button>
+        </form>
+        <p id="form-status" class="status"></p>
+      </section>
+
+      <section class="panel calendar-panel">
+        <h2>Calendario de reservas</h2>
+        <div class="calendar-nav">
+          <button id="prev-month" type="button">Mes anterior</button>
+          <strong id="month-label"></strong>
+          <button id="next-month" type="button">Mes siguiente</button>
+        </div>
+        <div id="calendar-weekdays" class="calendar-weekdays"></div>
+        <div id="calendar-grid" class="calendar-grid"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Stock diario</h2>
+        <label>Fecha <input id="stock-date" type="date" /></label>
+        <div id="stock-table"></div>
+      </section>
+
+      <section class="panel full">
+        <div class="section-header">
+          <div>
+            <h2>Catálogo</h2>
+            <p class="catalog-hint">El admin puede editar cada ítem o agregar uno nuevo desde aquí.</p>
+          </div>
+          <button id="add-inventory-btn" type="button" class="secondary hidden">Agregar producto</button>
+        </div>
+        <div id="catalog" class="catalog"></div>
+      </section>
+
+      <section class="panel full">
+        <h2>Reservas registradas</h2>
+        <div id="reservation-detail" class="reservation-detail">
+          <p>Toca una reserva para abrir su detalle.</p>
+        </div>
+        <div id="reservations"></div>
+      </section>
+    </main>
+
+    <div id="inventory-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-close-inventory-modal="true"></div>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="inventory-modal-title">
+        <div class="modal-header">
+          <div>
+            <h2 id="inventory-modal-title">Editar inventario</h2>
+            <p id="inventory-modal-subtitle" class="modal-subtitle"></p>
+          </div>
+          <button id="inventory-modal-close" type="button" class="secondary modal-close">Cerrar</button>
+        </div>
+        <form id="inventory-form">
+          <input type="hidden" name="id" />
+          <label>Nombre<input name="name" required /></label>
+          <label>Categoría<input name="category" required /></label>
+          <label>Medida<input name="size" required /></label>
+          <label>Stock total<input name="stockTotal" type="number" min="0" step="1" required /></label>
+          <label>Valor unitario (CLP)<input name="unitPriceCLP" type="number" min="0" step="1" required /></label>
+          <label>Bodega asignada
+            <select name="warehouseId" id="inventory-warehouse-select" required></select>
+          </label>
+          <label>Propiedades
+            <textarea name="properties" rows="3" placeholder="Una propiedad por línea o separadas por coma"></textarea>
+          </label>
+          <fieldset class="choice-fieldset">
+            <legend>Cojín asociado</legend>
+            <div class="choice-group">
+              <label class="choice-option">
+                <input type="radio" name="cushionOption" value="none" checked />
+                <span>No usa</span>
+              </label>
+              <label class="choice-option">
+                <input type="radio" name="cushionOption" value="white" />
+                <span>Blanco</span>
+              </label>
+              <label class="choice-option">
+                <input type="radio" name="cushionOption" value="black" />
+                <span>Negro</span>
+              </label>
+            </div>
+          </fieldset>
+          <label>Imagen de referencia<input name="imageRef" placeholder="media://inbound/archivo.jpg o /ruta/http" /></label>
+          <div id="inventory-image-dropzone" class="image-dropzone" tabindex="0" role="button" aria-label="Subir imagen del producto">
+            <div class="image-dropzone-copy">
+              <strong>Foto del producto</strong>
+              <span>Arrastra una imagen aquí o usa el botón para buscarla.</span>
+            </div>
+            <div id="inventory-image-preview" class="image-preview empty">
+              <span>Sin foto cargada</span>
+            </div>
+            <input id="inventory-image-input" type="file" accept="image/*" class="hidden" />
+            <div class="image-dropzone-actions">
+              <button id="inventory-image-browse" type="button" class="secondary">Buscar foto</button>
+              <button id="inventory-image-clear" type="button" class="secondary">Limpiar</button>
+            </div>
+          </div>
+          <p id="inventory-form-status" class="status"></p>
+          <div class="modal-actions">
+            <button id="inventory-save-btn" type="submit">Guardar cambios</button>
+            <button id="inventory-cancel-btn" type="button" class="secondary">Cancelar</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div id="print-order-sheet" class="print-order" aria-hidden="true"></div>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

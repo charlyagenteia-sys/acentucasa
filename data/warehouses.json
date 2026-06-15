@@ -1,0 +1,30 @@
+[
+  {
+    "id": "ppal-izco",
+    "name": "Ppal Izco",
+    "location": "Principal",
+    "manager": "Juan Pablo",
+    "notes": "Bodega principal"
+  },
+  {
+    "id": "jp",
+    "name": "JP",
+    "location": "Apoyo",
+    "manager": "Juan Pablo",
+    "notes": "Bodega de respaldo operativo"
+  },
+  {
+    "id": "amelita",
+    "name": "Amelita",
+    "location": "Casa",
+    "manager": "Amelita",
+    "notes": "Bodega asignada a Amelita"
+  },
+  {
+    "id": "mama",
+    "name": "Mamá",
+    "location": "Casa",
+    "manager": "Mamá",
+    "notes": "Bodega asignada a Mamá"
+  }
+]

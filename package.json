@@ -1,0 +1,14 @@
+{
+  "name": "app-arriendo-platos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MVP local para reservas de arriendo con stock y calendario propio",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
