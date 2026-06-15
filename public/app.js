@@ -340,7 +340,6 @@ function closeInventoryEditor(message = "") {
 
 function fillFormFromReservation(reservation) {
   form.elements.customerName.value = reservation.customerName || "";
-  form.elements.phone.value = reservation.phone || "";
   form.elements.startDate.value = reservation.startDate || "";
   form.elements.endDate.value = reservation.endDate || "";
   form.elements.status.value = reservation.status || "confirmed";
@@ -743,7 +742,6 @@ function renderReservationDetail() {
     </div>
     <div class="reservation-detail-grid">
       <p><strong>Cliente:</strong> ${escapeHtml(reservation.customerName)}</p>
-      <p><strong>Teléfono:</strong> ${escapeHtml(reservation.phone || "-")}</p>
       <p><strong>Fechas:</strong> ${reservation.startDate} a ${reservation.endDate}</p>
       <p><strong>Estado:</strong> ${escapeHtml(reservation.status)}</p>
       <p><strong>Bodega:</strong> ${escapeHtml(getWarehouseLabel(reservation.warehouseId))}</p>
@@ -864,7 +862,6 @@ function buildReservationPrintSheet(reservation) {
         <div class="print-client-name">${clientName}</div>
       </section>
       <section class="print-summary">
-        <div><strong>Teléfono:</strong> ${escapeHtml(reservation.phone || "-")}</div>
         <div><strong>Fechas:</strong> ${escapeHtml(reservation.startDate)} a ${escapeHtml(reservation.endDate)}</div>
         <div><strong>Estado:</strong> ${escapeHtml(reservation.status)}</div>
         <div><strong>Bodega:</strong> ${escapeHtml(getWarehouseLabel(reservation.warehouseId))}</div>
@@ -916,7 +913,6 @@ form.addEventListener("submit", async (event) => {
       method,
       body: JSON.stringify({
         customerName: data.get("customerName"),
-        phone: data.get("phone"),
         startDate: data.get("startDate"),
         endDate: data.get("endDate"),
         notes: data.get("notes"),
