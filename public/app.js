@@ -427,7 +427,9 @@ function clearAppData() {
   calendarGridEl.innerHTML = "";
   calendarWeekdaysEl.innerHTML = "";
   reservationDetailEl.innerHTML = "<p>Toca una reserva para abrir su detalle.</p>";
-  itemRowsEl.innerHTML = "";
+  if (itemRowsEl) {
+    itemRowsEl.innerHTML = "";
+  }
   formStatus.textContent = "";
   warehouseAlertEl.textContent = "";
   warehouseAlertEl.classList.add("empty");
@@ -504,7 +506,9 @@ function renderWarehouseSelect() {
 }
 
 function renderItemRows() {
-  itemRowsEl.innerHTML = "";
+  if (itemRowsEl) {
+    itemRowsEl.innerHTML = "";
+  }
 }
 
 function renderCatalog() {
@@ -847,8 +851,8 @@ function renderReservationDetail() {
     editBtn.addEventListener("click", () => {
       setEditMode(reservation);
       fillFormFromReservation(reservation);
-      itemRowsEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      const firstQtyInput = itemRowsEl.querySelector('input[type="number"]');
+      catalogEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      const firstQtyInput = catalogEl.querySelector('input[type="number"]');
       if (firstQtyInput) {
         firstQtyInput.focus({ preventScroll: true });
       }
