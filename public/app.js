@@ -41,6 +41,7 @@ const inventoryImageBrowseEl = document.getElementById("inventory-image-browse")
 const inventoryImageClearEl = document.getElementById("inventory-image-clear");
 const printOrderSheetEl = document.getElementById("print-order-sheet");
 const eventLocationSelectEl = document.getElementById("event-location-select");
+const banqueteroSelectEl = document.getElementById("banquetero-select");
 
 const todayISO = new Date().toISOString().slice(0, 10);
 stockDateEl.value = todayISO;
@@ -72,6 +73,11 @@ const EVENT_LOCATION_OPTIONS = new Map([
   ["reina-sur", "Reina Sur"],
   ["hacienda-porvenir", "Hacienda Porvenir"],
   ["otro", "Otro"]
+]);
+const BANQUETERO_OPTIONS = new Map([
+  ["juan-pablo", "Juan Pablo"],
+  ["amelita", "Amelita"],
+  ["senora-amelia", "Señora Amelia"]
 ]);
 
 function fmtCLP(value) {
@@ -106,6 +112,10 @@ function getWarehouseLabel(warehouseId) {
 
 function getEventLocationLabel(eventLocation) {
   return EVENT_LOCATION_OPTIONS.get(String(eventLocation || "")) || "Sin definir";
+}
+
+function getBanqueteroLabel(banquetero) {
+  return BANQUETERO_OPTIONS.get(String(banquetero || "")) || "Sin definir";
 }
 
 function getApprovalLabel(approvalStatus) {
@@ -362,6 +372,9 @@ function fillFormFromReservation(reservation) {
   if (eventLocationSelectEl) {
     eventLocationSelectEl.value = reservation.eventLocation || "";
   }
+  if (banqueteroSelectEl) {
+    banqueteroSelectEl.value = reservation.banquetero || "";
+  }
   form.elements.notes.value = reservation.notes || "";
 
   const qtyByItem = new Map((reservation.items || []).map((it) => [it.itemId, Number(it.quantity) || 0]));
@@ -379,6 +392,9 @@ function resetFormForCreateMode() {
   warehouseSelectEl.value = "";
   if (eventLocationSelectEl) {
     eventLocationSelectEl.value = "";
+  }
+  if (banqueteroSelectEl) {
+    banqueteroSelectEl.value = "";
   }
   renderItemRows();
   setEditMode(null);
@@ -791,6 +807,7 @@ function renderReservationDetail() {
       <p><strong>Cliente:</strong> ${escapeHtml(reservation.customerName)}</p>
       <p><strong>Fechas:</strong> ${reservation.startDate} a ${reservation.endDate}</p>
       <p><strong>Lugar del evento:</strong> ${escapeHtml(getEventLocationLabel(reservation.eventLocation))}</p>
+      <p><strong>Banquetero a cargo:</strong> ${escapeHtml(getBanqueteroLabel(reservation.banquetero))}</p>
       <p><strong>Estado:</strong> ${escapeHtml(reservation.status)}</p>
       <p><strong>Bodega:</strong> ${escapeHtml(getWarehouseLabel(reservation.warehouseId))}</p>
       <p><strong>Aprobación:</strong> <span class="approval-pill ${escapeHtml(reservation.approvalStatus || "not_required")}">${escapeHtml(getApprovalLabel(reservation.approvalStatus))}</span></p>
@@ -933,6 +950,7 @@ function buildReservationPrintSheet(reservation) {
         <section class="print-summary">
           <div><strong>Fechas:</strong> ${escapeHtml(reservation.startDate)} a ${escapeHtml(reservation.endDate)}</div>
           <div><strong>Lugar del evento:</strong> ${escapeHtml(getEventLocationLabel(reservation.eventLocation))}</div>
+          <div><strong>Banquetero a cargo:</strong> ${escapeHtml(getBanqueteroLabel(reservation.banquetero))}</div>
           <div><strong>Estado:</strong> ${escapeHtml(reservation.status)}</div>
           <div><strong>Bodega:</strong> ${escapeHtml(getWarehouseLabel(reservation.warehouseId))}</div>
           <div><strong>Aprobación:</strong> ${escapeHtml(getApprovalLabel(reservation.approvalStatus))}</div>
@@ -998,6 +1016,7 @@ form.addEventListener("submit", async (event) => {
         startDate: data.get("startDate"),
         endDate: data.get("endDate"),
         eventLocation: data.get("eventLocation"),
+        banquetero: data.get("banquetero"),
         notes: data.get("notes"),
         status: data.get("status"),
         warehouseId: data.get("warehouseId"),

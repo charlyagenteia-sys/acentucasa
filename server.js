@@ -308,6 +308,7 @@ function authMiddleware(req, res, next) {
 function validateReservationPayload(payload) {
   const customerName = String(payload.customerName || "").trim();
   const eventLocation = String(payload.eventLocation || "").trim();
+  const banquetero = String(payload.banquetero || "").trim();
   const notes = String(payload.notes || "").trim();
   const startDate = String(payload.startDate || "").trim();
   const endDate = String(payload.endDate || "").trim();
@@ -319,6 +320,9 @@ function validateReservationPayload(payload) {
   }
   if (!eventLocation) {
     return { error: "eventLocation es obligatorio" };
+  }
+  if (!banquetero) {
+    return { error: "banquetero es obligatorio" };
   }
 
   const start = parseISODate(startDate);
@@ -339,6 +343,7 @@ function validateReservationPayload(payload) {
   return {
     customerName,
     eventLocation,
+    banquetero,
     notes,
     startDate,
     endDate,
@@ -701,7 +706,7 @@ app.post("/api/reservations", (req, res) => {
   if (parsed.error) {
     return res.status(400).json({ error: parsed.error });
   }
-  const { customerName, eventLocation, notes, startDate, endDate, status, warehouseId, start, end, normalizedItems } = parsed;
+  const { customerName, eventLocation, banquetero, notes, startDate, endDate, status, warehouseId, start, end, normalizedItems } = parsed;
 
   const items = readJson(ITEMS_FILE);
   const reservations = readJson(RESERVATIONS_FILE);
@@ -745,6 +750,7 @@ app.post("/api/reservations", (req, res) => {
     createdAt: new Date().toISOString(),
     customerName,
     eventLocation,
+    banquetero,
     notes,
     startDate,
     endDate,
@@ -771,7 +777,7 @@ app.put("/api/reservations/:id", (req, res) => {
   if (parsed.error) {
     return res.status(400).json({ error: parsed.error });
   }
-  const { customerName, eventLocation, notes, startDate, endDate, status, warehouseId, start, end, normalizedItems } = parsed;
+  const { customerName, eventLocation, banquetero, notes, startDate, endDate, status, warehouseId, start, end, normalizedItems } = parsed;
 
   const items = readJson(ITEMS_FILE);
   const reservations = readJson(RESERVATIONS_FILE);
@@ -815,6 +821,7 @@ app.put("/api/reservations/:id", (req, res) => {
 
   found.customerName = customerName;
   found.eventLocation = eventLocation;
+  found.banquetero = banquetero;
   found.notes = notes;
   found.startDate = startDate;
   found.endDate = endDate;
