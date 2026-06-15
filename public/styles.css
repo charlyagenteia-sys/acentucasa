@@ -317,18 +317,19 @@ button:hover {
 }
 
 .thumb {
-  height: 124px;
+  height: 156px;
   background: linear-gradient(140deg, #e8dcc3, #f9f7ef);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  padding: 10px;
 }
 
 .thumb img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   border-radius: 6px;
 }
 
