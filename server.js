@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 4780;
 
 const DEFAULT_DATA_DIR = path.join(__dirname, "data");
 const DEFAULT_MEDIA_DIR = path.join(process.env.HOME || "", ".openclaw", "media", "inbound");
+const SEED_MEDIA_DIR = path.join(__dirname, "seed", "inbound");
 const DATA_DIR = path.resolve(process.env.APP_DATA_DIR || DEFAULT_DATA_DIR);
 const ITEMS_FILE = path.join(DATA_DIR, "items.json");
 const RESERVATIONS_FILE = path.join(DATA_DIR, "reservations.json");
@@ -57,6 +58,24 @@ function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
 
+function seedMediaFiles(targetDir, sourceDir) {
+  if (!fs.existsSync(sourceDir)) {
+    return;
+  }
+
+  ensureDir(targetDir);
+  for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
+    if (!entry.isFile()) {
+      continue;
+    }
+    const sourcePath = path.join(sourceDir, entry.name);
+    const targetPath = path.join(targetDir, entry.name);
+    if (!fs.existsSync(targetPath)) {
+      fs.copyFileSync(sourcePath, targetPath);
+    }
+  }
+}
+
 function seedFileIfMissing(targetPath, sourcePath, fallbackValue) {
   if (fs.existsSync(targetPath)) {
     return;
@@ -74,6 +93,7 @@ function seedFileIfMissing(targetPath, sourcePath, fallbackValue) {
 function bootstrapStorage() {
   ensureDir(DATA_DIR);
   ensureDir(INBOUND_MEDIA_DIR);
+  seedMediaFiles(INBOUND_MEDIA_DIR, SEED_MEDIA_DIR);
   seedFileIfMissing(ITEMS_FILE, path.join(SOURCE_DATA_DIR, "items.json"), []);
   seedFileIfMissing(RESERVATIONS_FILE, path.join(SOURCE_DATA_DIR, "reservations.json"), []);
   seedFileIfMissing(WAREHOUSES_FILE, path.join(SOURCE_DATA_DIR, "warehouses.json"), DEFAULT_WAREHOUSES);

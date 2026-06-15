@@ -102,7 +102,7 @@ Si vas a usar Render con disco persistente:
    - `APP_MEDIA_DIR=/var/data/media/inbound`
 3. Usa `npm start` como comando de arranque.
 
-La app copia los JSON iniciales desde `data/` la primera vez que arranca con esas rutas.
+La app copia los JSON iniciales desde `data/` y las imágenes base desde `seed/inbound/` la primera vez que arranca con esas rutas, así Render no queda con el catálogo sin fotos.
 
 ## Acceso remoto (mas estable)
 
