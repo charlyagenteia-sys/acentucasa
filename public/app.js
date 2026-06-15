@@ -701,7 +701,7 @@ async function loadCalendar() {
   calendarGridEl.querySelectorAll(".calendar-res-chip").forEach((el) => {
     el.addEventListener("click", (event) => {
       const reservationId = event.currentTarget.getAttribute("data-res-id");
-      openReservation(reservationId);
+      openReservation(reservationId, { scrollToDetail: true });
     });
   });
 }
@@ -799,7 +799,7 @@ function renderReservationDetail() {
   }
 }
 
-function openReservation(reservationId) {
+function openReservation(reservationId, options = {}) {
   if (!reservationId) {
     return;
   }
@@ -812,6 +812,16 @@ function openReservation(reservationId) {
   calendarGridEl.querySelectorAll(".calendar-res-chip").forEach((chip) => {
     chip.classList.toggle("selected", chip.getAttribute("data-res-id") === reservationId);
   });
+
+  if (options.scrollToDetail) {
+    requestAnimationFrame(() => {
+      reservationDetailEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      const printBtn = reservationDetailEl.querySelector(".detail-print-btn");
+      if (printBtn) {
+        printBtn.focus({ preventScroll: true });
+      }
+    });
+  }
 }
 
 function monthShift(current, delta) {
