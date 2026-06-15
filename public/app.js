@@ -128,6 +128,10 @@ function canEditReservation(reservation) {
   return reservation.createdBy === currentUser.username;
 }
 
+function getCatalogQuantityInput(itemId) {
+  return itemRowsEl.querySelector(`input[name="qty_${itemId}"]`);
+}
+
 function getApprovalLabel(approvalStatus) {
   if (approvalStatus === "approved") return "Aprobada";
   if (approvalStatus === "rejected") return "Rechazada";
@@ -389,7 +393,7 @@ function fillFormFromReservation(reservation) {
 
   const qtyByItem = new Map((reservation.items || []).map((it) => [it.itemId, Number(it.quantity) || 0]));
   for (const item of items) {
-    const input = form.elements[`qty_${item.id}`];
+    const input = getCatalogQuantityInput(item.id);
     if (input) {
       input.value = String(qtyByItem.get(item.id) || 0);
     }
@@ -680,6 +684,7 @@ async function loadReservations() {
         body: JSON.stringify({ status })
       });
       await Promise.all([loadReservations(), loadStock(), loadCalendar()]);
+      renderReservationDetail();
     });
   });
 
@@ -842,7 +847,11 @@ function renderReservationDetail() {
     editBtn.addEventListener("click", () => {
       setEditMode(reservation);
       fillFormFromReservation(reservation);
-      form.scrollIntoView({ behavior: "smooth", block: "start" });
+      itemRowsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      const firstQtyInput = itemRowsEl.querySelector('input[type="number"]');
+      if (firstQtyInput) {
+        firstQtyInput.focus({ preventScroll: true });
+      }
       formStatus.textContent = "Editando reserva abierta.";
       formStatus.classList.remove("error");
     });
@@ -910,6 +919,18 @@ function openReservation(reservationId, options = {}) {
       }
     });
   }
+}
+
+function getCatalogQuantities() {
+  return items
+    .map((item) => {
+      const input = getCatalogQuantityInput(item.id);
+      return {
+        itemId: item.id,
+        quantity: Number(input ? input.value : 0) || 0
+      };
+    })
+    .filter((entry) => entry.quantity > 0);
 }
 
 function monthShift(current, delta) {
@@ -1016,12 +1037,7 @@ form.addEventListener("submit", async (event) => {
   formStatus.classList.remove("error");
 
   const data = new FormData(form);
-  const selectedItems = items
-    .map((item) => ({
-      itemId: item.id,
-      quantity: Number(data.get(`qty_${item.id}`) || 0)
-    }))
-    .filter((it) => it.quantity > 0);
+  const selectedItems = getCatalogQuantities();
 
   try {
     const isEditing = Boolean(editingReservationId);
