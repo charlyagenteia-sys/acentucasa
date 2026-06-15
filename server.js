@@ -6,13 +6,16 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 4780;
 
-const DATA_DIR = path.join(__dirname, "data");
+const DEFAULT_DATA_DIR = path.join(__dirname, "data");
+const DEFAULT_MEDIA_DIR = path.join(process.env.HOME || "", ".openclaw", "media", "inbound");
+const DATA_DIR = path.resolve(process.env.APP_DATA_DIR || DEFAULT_DATA_DIR);
 const ITEMS_FILE = path.join(DATA_DIR, "items.json");
 const RESERVATIONS_FILE = path.join(DATA_DIR, "reservations.json");
 const WAREHOUSES_FILE = path.join(DATA_DIR, "warehouses.json");
-const INBOUND_MEDIA_DIR = path.join(process.env.HOME || "", ".openclaw", "media", "inbound");
+const INBOUND_MEDIA_DIR = path.resolve(process.env.APP_MEDIA_DIR || DEFAULT_MEDIA_DIR);
 const SESSION_COOKIE_NAME = "catalog_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
+const SOURCE_DATA_DIR = path.join(__dirname, "data");
 
 const AUTH_USERS = [
   { username: "lula", displayName: "Lula", password: "lula321", role: "operator" },
@@ -50,8 +53,34 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+function ensureDir(dirPath) {
+  fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function seedFileIfMissing(targetPath, sourcePath, fallbackValue) {
+  if (fs.existsSync(targetPath)) {
+    return;
+  }
+
+  ensureDir(path.dirname(targetPath));
+  if (sourcePath && fs.existsSync(sourcePath)) {
+    fs.copyFileSync(sourcePath, targetPath);
+    return;
+  }
+
+  writeJson(targetPath, fallbackValue);
+}
+
+function bootstrapStorage() {
+  ensureDir(DATA_DIR);
+  ensureDir(INBOUND_MEDIA_DIR);
+  seedFileIfMissing(ITEMS_FILE, path.join(SOURCE_DATA_DIR, "items.json"), []);
+  seedFileIfMissing(RESERVATIONS_FILE, path.join(SOURCE_DATA_DIR, "reservations.json"), []);
+  seedFileIfMissing(WAREHOUSES_FILE, path.join(SOURCE_DATA_DIR, "warehouses.json"), DEFAULT_WAREHOUSES);
+}
+
 function ensureInboundMediaDir() {
-  fs.mkdirSync(INBOUND_MEDIA_DIR, { recursive: true });
+  ensureDir(INBOUND_MEDIA_DIR);
 }
 
 function decodeDataUrl(dataUrl) {
@@ -217,6 +246,8 @@ function setSessionCookie(res, token) {
 function clearSessionCookie(res) {
   res.setHeader("Set-Cookie", `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
 }
+
+bootstrapStorage();
 
 function getSessionFromReq(req) {
   const cookies = parseCookies(req);

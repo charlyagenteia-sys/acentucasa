@@ -92,6 +92,18 @@ Formato por ítem:
 
 Con ambos archivos se restaura el estado completo del MVP.
 
+## Deploy en Render
+
+Si vas a usar Render con disco persistente:
+
+1. Crea un disco y móntalo en `/var/data`.
+2. En el servicio, agrega estas variables de entorno:
+   - `APP_DATA_DIR=/var/data/data`
+   - `APP_MEDIA_DIR=/var/data/media/inbound`
+3. Usa `npm start` como comando de arranque.
+
+La app copia los JSON iniciales desde `data/` la primera vez que arranca con esas rutas.
+
 ## Acceso remoto (mas estable)
 
 Para evitar reinicios manuales cada vez que cae el tunnel:
