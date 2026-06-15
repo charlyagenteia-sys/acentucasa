@@ -762,6 +762,7 @@ async function loadCalendar() {
         ? []
         : reservations.filter((r) => isActiveForStock(r.status) && overlapsDate(r, d.dateISO));
       const chips = dayReservations
+        .slice(0, 2)
         .map(
           (r) =>
             `<button type="button" class="calendar-res-chip ${
@@ -769,12 +770,13 @@ async function loadCalendar() {
             }" data-res-id="${r.id}" title="${escapeHtml(r.customerName)}">${escapeHtml(r.customerName)}</button>`
         )
         .join("");
+      const extra = dayReservations.length > 2 ? `<div class="calendar-more">+${dayReservations.length - 2} más</div>` : "";
 
       return `<article class="day ${d.outside ? "outside" : ""}">
         <div class="date">${d.dateLabel}</div>
         <div>Reservas: ${d.reservationCount}</div>
         <div>Unid. ocupadas: ${d.reservedUnits}</div>
-        <div class="calendar-day-reservations">${chips}</div>
+        <div class="calendar-day-reservations">${chips}${extra}</div>
       </article>`;
     })
     .join("");
@@ -782,7 +784,7 @@ async function loadCalendar() {
   calendarGridEl.querySelectorAll(".calendar-res-chip").forEach((el) => {
     el.addEventListener("click", (event) => {
       const reservationId = event.currentTarget.getAttribute("data-res-id");
-      openReservation(reservationId, { openSheet: true });
+      openReservation(reservationId, { scrollToDetail: true });
     });
   });
 }
@@ -863,7 +865,8 @@ function renderReservationDetail() {
 
   const printBtn = reservationDetailEl.querySelector(".detail-print-btn");
   printBtn.addEventListener("click", () => {
-    openReservationSheet(reservation);
+    buildReservationPrintSheet(reservation);
+    window.print();
   });
 
   const approveBtn = reservationDetailEl.querySelector(".detail-approve-btn");
@@ -895,10 +898,6 @@ function openReservation(reservationId, options = {}) {
   if (!reservationId) {
     return;
   }
-  const reservation = reservations.find((r) => r.id === reservationId);
-  if (!reservation) {
-    return;
-  }
   selectedReservationId = reservationId;
   renderReservationDetail();
 
@@ -908,11 +907,6 @@ function openReservation(reservationId, options = {}) {
   calendarGridEl.querySelectorAll(".calendar-res-chip").forEach((chip) => {
     chip.classList.toggle("selected", chip.getAttribute("data-res-id") === reservationId);
   });
-
-  if (options.openSheet) {
-    openReservationSheet(reservation);
-    return;
-  }
 
   if (options.scrollToDetail) {
     requestAnimationFrame(() => {

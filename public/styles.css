@@ -220,7 +220,7 @@ button:hover {
 .day {
   border: 1px solid var(--line);
   border-radius: 8px;
-  min-height: 88px;
+  min-height: 76px;
   padding: 6px;
   font-size: 0.78rem;
   background: #fff;
@@ -239,14 +239,12 @@ button:hover {
 .calendar-day-reservations {
   margin-top: 6px;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 4px;
 }
 
 .calendar-res-chip {
-  width: auto;
-  flex: 1 1 110px;
-  min-width: 0;
+  width: 100%;
   border: 1px solid #c9b899;
   border-radius: 999px;
   background: #fffaf0;
