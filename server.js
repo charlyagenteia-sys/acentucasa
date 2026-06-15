@@ -307,6 +307,7 @@ function authMiddleware(req, res, next) {
 
 function validateReservationPayload(payload) {
   const customerName = String(payload.customerName || "").trim();
+  const eventLocation = String(payload.eventLocation || "").trim();
   const notes = String(payload.notes || "").trim();
   const startDate = String(payload.startDate || "").trim();
   const endDate = String(payload.endDate || "").trim();
@@ -315,6 +316,9 @@ function validateReservationPayload(payload) {
 
   if (!customerName) {
     return { error: "customerName es obligatorio" };
+  }
+  if (!eventLocation) {
+    return { error: "eventLocation es obligatorio" };
   }
 
   const start = parseISODate(startDate);
@@ -334,6 +338,7 @@ function validateReservationPayload(payload) {
 
   return {
     customerName,
+    eventLocation,
     notes,
     startDate,
     endDate,
@@ -696,7 +701,7 @@ app.post("/api/reservations", (req, res) => {
   if (parsed.error) {
     return res.status(400).json({ error: parsed.error });
   }
-  const { customerName, notes, startDate, endDate, status, warehouseId, start, end, normalizedItems } = parsed;
+  const { customerName, eventLocation, notes, startDate, endDate, status, warehouseId, start, end, normalizedItems } = parsed;
 
   const items = readJson(ITEMS_FILE);
   const reservations = readJson(RESERVATIONS_FILE);
@@ -739,6 +744,7 @@ app.post("/api/reservations", (req, res) => {
     id: `res-${Date.now()}`,
     createdAt: new Date().toISOString(),
     customerName,
+    eventLocation,
     notes,
     startDate,
     endDate,
@@ -765,7 +771,7 @@ app.put("/api/reservations/:id", (req, res) => {
   if (parsed.error) {
     return res.status(400).json({ error: parsed.error });
   }
-  const { customerName, notes, startDate, endDate, status, warehouseId, start, end, normalizedItems } = parsed;
+  const { customerName, eventLocation, notes, startDate, endDate, status, warehouseId, start, end, normalizedItems } = parsed;
 
   const items = readJson(ITEMS_FILE);
   const reservations = readJson(RESERVATIONS_FILE);
@@ -808,6 +814,7 @@ app.put("/api/reservations/:id", (req, res) => {
     : "";
 
   found.customerName = customerName;
+  found.eventLocation = eventLocation;
   found.notes = notes;
   found.startDate = startDate;
   found.endDate = endDate;

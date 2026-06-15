@@ -424,6 +424,9 @@ button:hover {
 
 .print-order.modal {
   display: grid;
+  place-items: start center;
+  align-content: start;
+  padding-top: 12px;
 }
 
 .print-sheet-card {
@@ -681,6 +684,7 @@ button:hover {
     inset: auto;
     padding: 0;
     background: transparent;
+    place-items: start center;
   }
 
   .print-sheet-card {

@@ -40,6 +40,7 @@ const inventoryImageInputEl = document.getElementById("inventory-image-input");
 const inventoryImageBrowseEl = document.getElementById("inventory-image-browse");
 const inventoryImageClearEl = document.getElementById("inventory-image-clear");
 const printOrderSheetEl = document.getElementById("print-order-sheet");
+const eventLocationSelectEl = document.getElementById("event-location-select");
 
 const todayISO = new Date().toISOString().slice(0, 10);
 stockDateEl.value = todayISO;
@@ -61,6 +62,16 @@ const CUSHION_OPTIONS = new Map([
   ["none", "No usa"],
   ["white", "Blanco"],
   ["black", "Negro"]
+]);
+const EVENT_LOCATION_OPTIONS = new Map([
+  ["noviciado", "Noviciado"],
+  ["casa-amelia", "Casa Amelia"],
+  ["alto-san-fco", "Alto San Fco"],
+  ["entremuros", "Entremuros"],
+  ["vina-santa-rita", "Viña Santa Rita"],
+  ["reina-sur", "Reina Sur"],
+  ["hacienda-porvenir", "Hacienda Porvenir"],
+  ["otro", "Otro"]
 ]);
 
 function fmtCLP(value) {
@@ -91,6 +102,10 @@ function getWarehouseById(warehouseId) {
 function getWarehouseLabel(warehouseId) {
   const warehouse = getWarehouseById(warehouseId);
   return warehouse ? `${warehouse.name} · ${warehouse.location}` : "Sin bodega";
+}
+
+function getEventLocationLabel(eventLocation) {
+  return EVENT_LOCATION_OPTIONS.get(String(eventLocation || "")) || "Sin definir";
 }
 
 function getApprovalLabel(approvalStatus) {
@@ -344,6 +359,9 @@ function fillFormFromReservation(reservation) {
   form.elements.endDate.value = reservation.endDate || "";
   form.elements.status.value = reservation.status || "confirmed";
   form.elements.warehouseId.value = reservation.warehouseId || "";
+  if (eventLocationSelectEl) {
+    eventLocationSelectEl.value = reservation.eventLocation || "";
+  }
   form.elements.notes.value = reservation.notes || "";
 
   const qtyByItem = new Map((reservation.items || []).map((it) => [it.itemId, Number(it.quantity) || 0]));
@@ -359,6 +377,9 @@ function resetFormForCreateMode() {
   form.reset();
   stockDateEl.value = todayISO;
   warehouseSelectEl.value = "";
+  if (eventLocationSelectEl) {
+    eventLocationSelectEl.value = "";
+  }
   renderItemRows();
   setEditMode(null);
   updateWarehouseAlert();
@@ -769,6 +790,7 @@ function renderReservationDetail() {
     <div class="reservation-detail-grid">
       <p><strong>Cliente:</strong> ${escapeHtml(reservation.customerName)}</p>
       <p><strong>Fechas:</strong> ${reservation.startDate} a ${reservation.endDate}</p>
+      <p><strong>Lugar del evento:</strong> ${escapeHtml(getEventLocationLabel(reservation.eventLocation))}</p>
       <p><strong>Estado:</strong> ${escapeHtml(reservation.status)}</p>
       <p><strong>Bodega:</strong> ${escapeHtml(getWarehouseLabel(reservation.warehouseId))}</p>
       <p><strong>Aprobación:</strong> <span class="approval-pill ${escapeHtml(reservation.approvalStatus || "not_required")}">${escapeHtml(getApprovalLabel(reservation.approvalStatus))}</span></p>
@@ -794,8 +816,7 @@ function renderReservationDetail() {
 
   const printBtn = reservationDetailEl.querySelector(".detail-print-btn");
   printBtn.addEventListener("click", () => {
-    buildReservationPrintSheet(reservation);
-    window.print();
+    openReservationSheet(reservation);
   });
 
   const approveBtn = reservationDetailEl.querySelector(".detail-approve-btn");
@@ -825,6 +846,10 @@ function renderReservationDetail() {
 
 function openReservation(reservationId, options = {}) {
   if (!reservationId) {
+    return;
+  }
+  const reservation = reservations.find((r) => r.id === reservationId);
+  if (!reservation) {
     return;
   }
   selectedReservationId = reservationId;
@@ -888,11 +913,11 @@ function buildReservationPrintSheet(reservation) {
         <header class="print-order-header">
           <div class="print-brand">
             <div class="print-logo" aria-hidden="true">
-              <span>AP</span>
+              <span>AC</span>
             </div>
             <div>
               <p class="print-kicker">Pedido para impresión</p>
-              <h1>Arriendo Plaqué</h1>
+              <h1>AC Mobiliario</h1>
               <p class="print-muted">Detalle de reserva y pedido asociado</p>
             </div>
           </div>
@@ -907,6 +932,7 @@ function buildReservationPrintSheet(reservation) {
         </section>
         <section class="print-summary">
           <div><strong>Fechas:</strong> ${escapeHtml(reservation.startDate)} a ${escapeHtml(reservation.endDate)}</div>
+          <div><strong>Lugar del evento:</strong> ${escapeHtml(getEventLocationLabel(reservation.eventLocation))}</div>
           <div><strong>Estado:</strong> ${escapeHtml(reservation.status)}</div>
           <div><strong>Bodega:</strong> ${escapeHtml(getWarehouseLabel(reservation.warehouseId))}</div>
           <div><strong>Aprobación:</strong> ${escapeHtml(getApprovalLabel(reservation.approvalStatus))}</div>
@@ -971,6 +997,7 @@ form.addEventListener("submit", async (event) => {
         customerName: data.get("customerName"),
         startDate: data.get("startDate"),
         endDate: data.get("endDate"),
+        eventLocation: data.get("eventLocation"),
         notes: data.get("notes"),
         status: data.get("status"),
         warehouseId: data.get("warehouseId"),
