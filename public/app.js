@@ -118,6 +118,16 @@ function getBanqueteroLabel(banquetero) {
   return BANQUETERO_OPTIONS.get(String(banquetero || "")) || "Sin definir";
 }
 
+function canEditReservation(reservation) {
+  if (!currentUser || !reservation) {
+    return false;
+  }
+  if (currentUser.role === "admin") {
+    return true;
+  }
+  return reservation.createdBy === currentUser.username;
+}
+
 function getApprovalLabel(approvalStatus) {
   if (approvalStatus === "approved") return "Aprobada";
   if (approvalStatus === "rejected") return "Rechazada";
@@ -634,7 +644,7 @@ async function loadReservations() {
         <td>${itemLines}</td>
         <td>${fmtCLP(r.totalCLP)}</td>
         <td>
-          <select data-res-id="${r.id}" class="status-select">
+          <select data-res-id="${r.id}" class="status-select" ${canEditReservation(r) ? "" : "disabled"}>
             ${["pending", "confirmed", "delivered", "returned", "cancelled"]
               .map((s) => `<option value="${s}" ${s === r.status ? "selected" : ""}>${s}</option>`)
               .join("")}
@@ -794,7 +804,11 @@ function renderReservationDetail() {
   reservationDetailEl.innerHTML = `
     <h3>Reserva abierta</h3>
     <div class="detail-actions">
-      <button type="button" class="secondary detail-edit-btn" data-res-id="${escapeHtml(reservation.id)}">Editar reserva</button>
+      ${
+        canEditReservation(reservation)
+          ? `<button type="button" class="secondary detail-edit-btn" data-res-id="${escapeHtml(reservation.id)}">Editar reserva</button>`
+          : ""
+      }
       <button type="button" class="secondary detail-print-btn" data-res-id="${escapeHtml(reservation.id)}">Imprimir pedido</button>
       ${
         currentUser && currentUser.role === "admin" && reservation.approvalStatus === "pending"
@@ -808,6 +822,7 @@ function renderReservationDetail() {
       <p><strong>Fechas:</strong> ${reservation.startDate} a ${reservation.endDate}</p>
       <p><strong>Lugar del evento:</strong> ${escapeHtml(getEventLocationLabel(reservation.eventLocation))}</p>
       <p><strong>Banquetero a cargo:</strong> ${escapeHtml(getBanqueteroLabel(reservation.banquetero))}</p>
+      <p><strong>Creada por:</strong> ${escapeHtml(reservation.createdByDisplayName || reservation.createdBy || "Sistema")}</p>
       <p><strong>Estado:</strong> ${escapeHtml(reservation.status)}</p>
       <p><strong>Bodega:</strong> ${escapeHtml(getWarehouseLabel(reservation.warehouseId))}</p>
       <p><strong>Aprobación:</strong> <span class="approval-pill ${escapeHtml(reservation.approvalStatus || "not_required")}">${escapeHtml(getApprovalLabel(reservation.approvalStatus))}</span></p>
@@ -823,13 +838,15 @@ function renderReservationDetail() {
   `;
 
   const editBtn = reservationDetailEl.querySelector(".detail-edit-btn");
-  editBtn.addEventListener("click", () => {
-    setEditMode(reservation);
-    fillFormFromReservation(reservation);
-    form.scrollIntoView({ behavior: "smooth", block: "start" });
-    formStatus.textContent = "Editando reserva abierta.";
-    formStatus.classList.remove("error");
-  });
+  if (editBtn) {
+    editBtn.addEventListener("click", () => {
+      setEditMode(reservation);
+      fillFormFromReservation(reservation);
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+      formStatus.textContent = "Editando reserva abierta.";
+      formStatus.classList.remove("error");
+    });
+  }
 
   const printBtn = reservationDetailEl.querySelector(".detail-print-btn");
   printBtn.addEventListener("click", () => {
@@ -951,6 +968,7 @@ function buildReservationPrintSheet(reservation) {
           <div><strong>Fechas:</strong> ${escapeHtml(reservation.startDate)} a ${escapeHtml(reservation.endDate)}</div>
           <div><strong>Lugar del evento:</strong> ${escapeHtml(getEventLocationLabel(reservation.eventLocation))}</div>
           <div><strong>Banquetero a cargo:</strong> ${escapeHtml(getBanqueteroLabel(reservation.banquetero))}</div>
+          <div><strong>Creada por:</strong> ${escapeHtml(reservation.createdByDisplayName || reservation.createdBy || "Sistema")}</div>
           <div><strong>Estado:</strong> ${escapeHtml(reservation.status)}</div>
           <div><strong>Bodega:</strong> ${escapeHtml(getWarehouseLabel(reservation.warehouseId))}</div>
           <div><strong>Aprobación:</strong> ${escapeHtml(getApprovalLabel(reservation.approvalStatus))}</div>

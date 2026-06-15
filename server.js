@@ -751,6 +751,8 @@ app.post("/api/reservations", (req, res) => {
     customerName,
     eventLocation,
     banquetero,
+    createdBy: req.user.username,
+    createdByDisplayName: req.user.displayName,
     notes,
     startDate,
     endDate,
@@ -785,6 +787,12 @@ app.put("/api/reservations/:id", (req, res) => {
   const found = reservations.find((r) => r.id === id);
   if (!found) {
     return res.status(404).json({ error: "Reserva no encontrada" });
+  }
+  if (req.user.role !== "admin" && found.createdBy && found.createdBy !== req.user.username) {
+    return res.status(403).json({ error: "Solo el creador o admin puede editar esta reserva" });
+  }
+  if (req.user.role !== "admin" && !found.createdBy) {
+    return res.status(403).json({ error: "Solo el creador o admin puede editar esta reserva" });
   }
 
   const itemMap = new Map(items.map((it) => [it.id, it]));
@@ -874,6 +882,12 @@ app.patch("/api/reservations/:id/status", (req, res) => {
   const found = reservations.find((r) => r.id === id);
   if (!found) {
     return res.status(404).json({ error: "Reserva no encontrada" });
+  }
+  if (req.user.role !== "admin" && found.createdBy && found.createdBy !== req.user.username) {
+    return res.status(403).json({ error: "Solo el creador o admin puede modificar esta reserva" });
+  }
+  if (req.user.role !== "admin" && !found.createdBy) {
+    return res.status(403).json({ error: "Solo el creador o admin puede modificar esta reserva" });
   }
 
   found.status = newStatus;
