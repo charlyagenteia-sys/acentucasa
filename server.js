@@ -23,6 +23,7 @@ const AUTH_USERS = [
   { username: "amelita", displayName: "Amelita", password: "Ame321", role: "operator" },
   { username: "sraame", displayName: "SraAme", password: "Mama321", role: "operator" },
   { username: "nancy", displayName: "Nancy", password: "Orga321", role: "operator" },
+  { username: "kathy", displayName: "Kathy", password: "kat432", role: "operator" },
   { username: "jeisson", displayName: "Jeisson", password: "Jei321", role: "admin" }
 ];
 const AUTH_USER_MAP = new Map(AUTH_USERS.map((user) => [user.username, user]));
