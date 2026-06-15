@@ -639,26 +639,14 @@ button:hover {
   padding-left: 18px;
 }
 
-.catalog-item-qty {
+.item-row {
   display: grid;
-  gap: 4px;
-  margin-top: 10px;
-  padding: 10px;
-  border-top: 1px solid rgba(80, 63, 44, 0.14);
-  background: linear-gradient(180deg, rgba(255, 252, 245, 0.5), rgba(255, 247, 232, 0.92));
+  grid-template-columns: 1fr 100px;
+  gap: 8px;
 }
 
-.catalog-item-qty span {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #5f4d3a;
-}
-
-.catalog-item-qty input {
+.item-row input {
   margin-top: 0;
-  text-align: center;
-  font-weight: 700;
-  font-size: 1rem;
 }
 
 .warehouse-chip {

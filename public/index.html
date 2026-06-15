@@ -69,7 +69,9 @@
             </select>
           </label>
           <p id="warehouse-alert" class="status approval-banner"></p>
+          <div id="item-rows"></div>
           <label>Notas<textarea name="notes" rows="2"></textarea></label>
+          <button id="reservation-submit-btn" type="submit">Guardar reserva</button>
           <button id="cancel-edit-btn" type="button" class="secondary hidden">Cancelar edición</button>
         </form>
         <p id="form-status" class="status"></p>
@@ -96,7 +98,7 @@
         <div class="section-header">
           <div>
             <h2>Catálogo</h2>
-            <p class="catalog-hint">Agrega las cantidades desde cada producto y guarda la reserva desde aquí.</p>
+            <p class="catalog-hint">El admin puede editar cada ítem o agregar uno nuevo desde aquí.</p>
           </div>
           <button id="add-inventory-btn" type="button" class="secondary hidden">Agregar producto</button>
         </div>
