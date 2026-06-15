@@ -220,7 +220,7 @@ button:hover {
 .day {
   border: 1px solid var(--line);
   border-radius: 8px;
-  min-height: 76px;
+  min-height: 88px;
   padding: 6px;
   font-size: 0.78rem;
   background: #fff;
@@ -239,12 +239,14 @@ button:hover {
 .calendar-day-reservations {
   margin-top: 6px;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
 .calendar-res-chip {
-  width: 100%;
+  width: auto;
+  flex: 1 1 110px;
+  min-width: 0;
   border: 1px solid #c9b899;
   border-radius: 999px;
   background: #fffaf0;
@@ -418,6 +420,42 @@ button:hover {
 
 .print-order {
   display: none;
+}
+
+.print-order.modal {
+  display: grid;
+}
+
+.print-sheet-card {
+  width: min(980px, 100%);
+  max-height: min(92vh, 980px);
+  background: #efe7d7;
+  padding: 16px;
+}
+
+.print-sheet-header {
+  align-items: start;
+}
+
+.print-sheet-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.print-sheet-actions button {
+  width: auto;
+  min-width: 110px;
+  padding-inline: 12px;
+}
+
+.print-order-page {
+  background: #fff;
+  border: 1px solid rgba(31, 27, 22, 0.12);
+  border-radius: 14px;
+  padding: 22px 24px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38);
 }
 
 .modal {
@@ -630,6 +668,28 @@ button:hover {
 
   .print-order {
     display: block;
+  }
+
+  .print-order .modal-backdrop,
+  .print-order .modal-header,
+  .print-order .print-sheet-actions {
+    display: none !important;
+  }
+
+  .print-order.modal {
+    position: static;
+    inset: auto;
+    padding: 0;
+    background: transparent;
+  }
+
+  .print-sheet-card {
+    width: 100%;
+    max-height: none;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
   }
 
   .print-order-page {

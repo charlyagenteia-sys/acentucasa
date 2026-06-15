@@ -540,6 +540,34 @@ function renderCatalog() {
   });
 }
 
+function isPrintSheetOpen() {
+  return !printOrderSheetEl.classList.contains("hidden");
+}
+
+function closeReservationSheet() {
+  printOrderSheetEl.classList.add("hidden");
+  printOrderSheetEl.setAttribute("aria-hidden", "true");
+  printOrderSheetEl.innerHTML = "";
+  document.body.classList.remove("modal-open");
+}
+
+function openReservationSheet(reservation) {
+  if (!reservation) {
+    return;
+  }
+  buildReservationPrintSheet(reservation);
+  printOrderSheetEl.classList.remove("hidden");
+  printOrderSheetEl.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+
+  requestAnimationFrame(() => {
+    const closeBtn = printOrderSheetEl.querySelector(".print-modal-close");
+    if (closeBtn) {
+      closeBtn.focus({ preventScroll: true });
+    }
+  });
+}
+
 async function loadReservations() {
   reservations = await api("/api/reservations");
   if (selectedReservationId && !reservations.some((r) => r.id === selectedReservationId)) {
@@ -678,7 +706,6 @@ async function loadCalendar() {
         ? []
         : reservations.filter((r) => isActiveForStock(r.status) && overlapsDate(r, d.dateISO));
       const chips = dayReservations
-        .slice(0, 2)
         .map(
           (r) =>
             `<button type="button" class="calendar-res-chip ${
@@ -686,13 +713,12 @@ async function loadCalendar() {
             }" data-res-id="${r.id}" title="${escapeHtml(r.customerName)}">${escapeHtml(r.customerName)}</button>`
         )
         .join("");
-      const extra = dayReservations.length > 2 ? `<div class="calendar-more">+${dayReservations.length - 2} más</div>` : "";
 
       return `<article class="day ${d.outside ? "outside" : ""}">
         <div class="date">${d.dateLabel}</div>
         <div>Reservas: ${d.reservationCount}</div>
         <div>Unid. ocupadas: ${d.reservedUnits}</div>
-        <div class="calendar-day-reservations">${chips}${extra}</div>
+        <div class="calendar-day-reservations">${chips}</div>
       </article>`;
     })
     .join("");
@@ -700,7 +726,7 @@ async function loadCalendar() {
   calendarGridEl.querySelectorAll(".calendar-res-chip").forEach((el) => {
     el.addEventListener("click", (event) => {
       const reservationId = event.currentTarget.getAttribute("data-res-id");
-      openReservation(reservationId, { scrollToDetail: true });
+      openReservation(reservationId, { openSheet: true });
     });
   });
 }
@@ -811,6 +837,11 @@ function openReservation(reservationId, options = {}) {
     chip.classList.toggle("selected", chip.getAttribute("data-res-id") === reservationId);
   });
 
+  if (options.openSheet) {
+    openReservationSheet(reservation);
+    return;
+  }
+
   if (options.scrollToDetail) {
     requestAnimationFrame(() => {
       reservationDetailEl.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -840,56 +871,81 @@ function buildReservationPrintSheet(reservation) {
   const preparedBy = escapeHtml(currentUser ? currentUser.displayName : "Sistema");
 
   printOrderSheetEl.innerHTML = `
-    <section class="print-order-page">
-      <header class="print-order-header">
-        <div class="print-brand">
-          <div class="print-logo" aria-hidden="true">
-            <span>AP</span>
+    <div class="modal-backdrop" data-close-print-modal="true"></div>
+    <section class="modal-card print-sheet-card" role="dialog" aria-modal="true" aria-labelledby="print-sheet-title">
+      <div class="modal-header print-sheet-header">
+        <div>
+          <p class="print-kicker">Pedido para revisión</p>
+          <h2 id="print-sheet-title">Vista tipo PDF</h2>
+          <p class="modal-subtitle">Puedes cerrar esta lámina cuando termines de verla.</p>
+        </div>
+        <div class="print-sheet-actions">
+          <button type="button" class="secondary print-sheet-print-btn">Imprimir</button>
+          <button type="button" class="secondary print-modal-close">Cerrar</button>
+        </div>
+      </div>
+      <section class="print-order-page">
+        <header class="print-order-header">
+          <div class="print-brand">
+            <div class="print-logo" aria-hidden="true">
+              <span>AP</span>
+            </div>
+            <div>
+              <p class="print-kicker">Pedido para impresión</p>
+              <h1>Arriendo Plaqué</h1>
+              <p class="print-muted">Detalle de reserva y pedido asociado</p>
+            </div>
           </div>
-          <div>
-            <p class="print-kicker">Pedido para impresión</p>
-            <h1>Arriendo Plaqué</h1>
-            <p class="print-muted">Detalle de reserva y pedido asociado</p>
+          <div class="print-meta">
+            <span>ID ${escapeHtml(reservation.id)}</span>
+            <span>${escapeHtml(new Date().toLocaleString("es-CL"))}</span>
           </div>
-        </div>
-        <div class="print-meta">
-          <span>ID ${escapeHtml(reservation.id)}</span>
-          <span>${escapeHtml(new Date().toLocaleString("es-CL"))}</span>
-        </div>
-      </header>
-      <section class="print-client">
-        <div class="print-client-label">Cliente</div>
-        <div class="print-client-name">${clientName}</div>
-      </section>
-      <section class="print-summary">
-        <div><strong>Fechas:</strong> ${escapeHtml(reservation.startDate)} a ${escapeHtml(reservation.endDate)}</div>
-        <div><strong>Estado:</strong> ${escapeHtml(reservation.status)}</div>
-        <div><strong>Bodega:</strong> ${escapeHtml(getWarehouseLabel(reservation.warehouseId))}</div>
-        <div><strong>Aprobación:</strong> ${escapeHtml(getApprovalLabel(reservation.approvalStatus))}</div>
-      </section>
-      <section class="print-items">
-        <h2>Ítems</h2>
-        <ul>${itemLines}</ul>
-      </section>
-      <section class="print-footer">
-        <div><strong>Total:</strong> ${escapeHtml(fmtCLP(reservation.totalCLP))}</div>
-        <div><strong>Notas:</strong> ${escapeHtml(reservation.notes || "-")}</div>
-        <div><strong>Motivo aprobación:</strong> ${escapeHtml(reservation.approvalReason || "No requiere")}</div>
-      </section>
-      <section class="print-signatures">
-        <div class="print-signature-block">
-          <span class="print-signature-title">Firma de despacho</span>
-          <div class="print-signature-line"></div>
-          <span class="print-signature-caption">Preparado por ${preparedBy}</span>
-        </div>
-        <div class="print-signature-block">
-          <span class="print-signature-title">Firma de recepción</span>
-          <div class="print-signature-line"></div>
-          <span class="print-signature-caption">Recibe cliente</span>
-        </div>
+        </header>
+        <section class="print-client">
+          <div class="print-client-label">Cliente</div>
+          <div class="print-client-name">${clientName}</div>
+        </section>
+        <section class="print-summary">
+          <div><strong>Fechas:</strong> ${escapeHtml(reservation.startDate)} a ${escapeHtml(reservation.endDate)}</div>
+          <div><strong>Estado:</strong> ${escapeHtml(reservation.status)}</div>
+          <div><strong>Bodega:</strong> ${escapeHtml(getWarehouseLabel(reservation.warehouseId))}</div>
+          <div><strong>Aprobación:</strong> ${escapeHtml(getApprovalLabel(reservation.approvalStatus))}</div>
+        </section>
+        <section class="print-items">
+          <h2>Ítems</h2>
+          <ul>${itemLines}</ul>
+        </section>
+        <section class="print-footer">
+          <div><strong>Total:</strong> ${escapeHtml(fmtCLP(reservation.totalCLP))}</div>
+          <div><strong>Notas:</strong> ${escapeHtml(reservation.notes || "-")}</div>
+          <div><strong>Motivo aprobación:</strong> ${escapeHtml(reservation.approvalReason || "No requiere")}</div>
+        </section>
+        <section class="print-signatures">
+          <div class="print-signature-block">
+            <span class="print-signature-title">Firma de despacho</span>
+            <div class="print-signature-line"></div>
+            <span class="print-signature-caption">Preparado por ${preparedBy}</span>
+          </div>
+          <div class="print-signature-block">
+            <span class="print-signature-title">Firma de recepción</span>
+            <div class="print-signature-line"></div>
+            <span class="print-signature-caption">Recibe cliente</span>
+          </div>
+        </section>
       </section>
     </section>
   `;
+
+  const closeBtn = printOrderSheetEl.querySelector(".print-modal-close");
+  const printBtn = printOrderSheetEl.querySelector(".print-sheet-print-btn");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", closeReservationSheet);
+  }
+  if (printBtn) {
+    printBtn.addEventListener("click", () => {
+      window.print();
+    });
+  }
 }
 
 form.addEventListener("submit", async (event) => {
@@ -1052,9 +1108,17 @@ inventoryModalEl.addEventListener("click", (event) => {
     closeInventoryEditor();
   }
 });
+printOrderSheetEl.addEventListener("click", (event) => {
+  if (event.target && event.target.dataset && event.target.dataset.closePrintModal === "true") {
+    closeReservationSheet();
+  }
+});
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !inventoryModalEl.classList.contains("hidden")) {
     closeInventoryEditor();
+  }
+  if (event.key === "Escape" && isPrintSheetOpen()) {
+    closeReservationSheet();
   }
 });
 prevMonthBtn.addEventListener("click", async () => {
