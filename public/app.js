@@ -34,6 +34,7 @@ const inventoryCancelBtn = document.getElementById("inventory-cancel-btn");
 const inventoryWarehouseSelectEl = document.getElementById("inventory-warehouse-select");
 const inventoryCategorySelectEl = document.getElementById("inventory-category-select");
 const inventoryAuthorizationOwnerSelectEl = document.getElementById("inventory-authorization-owner-select");
+const inventoryCushionFieldsetEl = document.getElementById("inventory-cushion-fieldset");
 const inventoryImageDropzoneEl = document.getElementById("inventory-image-dropzone");
 const inventoryImagePreviewEl = document.getElementById("inventory-image-preview");
 const inventoryImageInputEl = document.getElementById("inventory-image-input");
@@ -62,6 +63,11 @@ const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const ACTIVE_STOCK_STATUSES = new Set(["pending", "confirmed", "delivered"]);
 const INVENTORY_CATEGORIES = ["Sillas", "Platos", "Lounge", "Manteleria", "Bares", "Plaqué"];
 const INVENTORY_CATEGORY_LABELS = new Map(INVENTORY_CATEGORIES.map((category) => [category.toLowerCase(), category]));
+const INVENTORY_CATEGORY_ALIASES = new Map([
+  ["fuentes", "Plaqué"],
+  ["bandejas", "Plaqué"],
+  ["plaque", "Plaqué"]
+]);
 const AUTHORIZATION_OWNER_OPTIONS = [
   { value: "", label: "Sin usuario" },
   { value: "lula", label: "Lula" },
@@ -129,6 +135,15 @@ function getWarehouseLabel(warehouseId) {
   return warehouse ? `${warehouse.name} · ${warehouse.location}` : "Sin bodega";
 }
 
+function normalizeInventoryCategory(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+  const normalized = raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return INVENTORY_CATEGORY_LABELS.get(normalized) || INVENTORY_CATEGORY_ALIASES.get(normalized) || "";
+}
+
 function getEventLocationLabel(eventLocation) {
   return EVENT_LOCATION_OPTIONS.get(String(eventLocation || "")) || "Sin definir";
 }
@@ -193,6 +208,19 @@ function setInventoryCushionOption(value = "none") {
   });
 }
 
+function syncInventoryCushionState() {
+  if (!inventoryCushionFieldsetEl) {
+    return;
+  }
+  const category = normalizeInventoryCategory(inventoryCategorySelectEl ? inventoryCategorySelectEl.value : "");
+  const showCushion = category === "Sillas";
+  inventoryCushionFieldsetEl.classList.toggle("hidden", !showCushion);
+  inventoryCushionFieldsetEl.disabled = !showCushion;
+  if (!showCushion) {
+    setInventoryCushionOption("none");
+  }
+}
+
 function setInventoryAuthorizationRequired(required) {
   const checkbox = inventoryForm.elements.authorizationRequired;
   if (checkbox) {
@@ -209,6 +237,9 @@ function setInventoryAuthorizationStatus(value = "pending") {
 }
 
 function getInventoryCushionOption() {
+  if (normalizeInventoryCategory(inventoryCategorySelectEl ? inventoryCategorySelectEl.value : "") !== "Sillas") {
+    return "none";
+  }
   const selected = inventoryForm.querySelector('input[name="cushionOption"]:checked');
   return selected ? selected.value : "none";
 }
@@ -218,8 +249,7 @@ function getCushionLabel(value) {
 }
 
 function getCategoryLabel(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  return INVENTORY_CATEGORY_LABELS.get(normalized) || value || "Sin categoría";
+  return normalizeInventoryCategory(value) || value || "Sin categoría";
 }
 
 function getAuthorizationStatusLabel(value) {
@@ -246,21 +276,15 @@ function renderInventoryCategorySelect(selectedValue = "") {
     return;
   }
 
-  const rawSelected = String(selectedValue || "").trim();
-  const matchedCategory = INVENTORY_CATEGORIES.find(
-    (category) => category.toLowerCase() === rawSelected.toLowerCase()
-  );
-  const normalizedSelected = matchedCategory || rawSelected;
+  const normalizedSelected = normalizeInventoryCategory(selectedValue);
   inventoryCategorySelectEl.innerHTML = [
     '<option value="" disabled>Selecciona una categoría</option>',
-    ...INVENTORY_CATEGORIES.map((category) => `<option value="${category}">${category}</option>`),
-    ...(!normalizedSelected || INVENTORY_CATEGORIES.includes(normalizedSelected)
-      ? []
-      : [ `<option value="${normalizedSelected}">${escapeHtml(normalizedSelected)}</option>` ])
+    ...INVENTORY_CATEGORIES.map((category) => `<option value="${category}">${category}</option>`)
   ].join("");
-  inventoryCategorySelectEl.value = normalizedSelected && inventoryCategorySelectEl.querySelector(`option[value="${CSS.escape(normalizedSelected)}"]`)
+  inventoryCategorySelectEl.value = normalizedSelected && INVENTORY_CATEGORIES.includes(normalizedSelected)
     ? normalizedSelected
     : "";
+  syncInventoryCushionState();
 }
 
 function renderAuthorizationOwnerSelect(selectedValue = "") {
@@ -405,6 +429,7 @@ function resetInventoryForm() {
   renderInventoryWarehouseSelect();
   renderInventoryCategorySelect();
   renderAuthorizationOwnerSelect();
+  syncInventoryCushionState();
   setInventoryModalOpen(false);
 }
 
@@ -419,8 +444,9 @@ function fillInventoryForm(item) {
   inventoryForm.elements.name.value = item.name || "";
   renderInventoryCategorySelect(item.category || "");
   if (inventoryCategorySelectEl) {
-    inventoryCategorySelectEl.value = item.category || "";
+    inventoryCategorySelectEl.value = normalizeInventoryCategory(item.category || "");
   }
+  syncInventoryCushionState();
   inventoryForm.elements.size.value = item.size || "";
   inventoryForm.elements.stockTotal.value = String(item.stockTotal ?? 0);
   inventoryForm.elements.unitPriceCLP.value = String(item.unitPriceCLP ?? 0);
@@ -455,6 +481,7 @@ function openNewInventoryEditor() {
   inventoryForm.elements.id.value = "";
   inventoryForm.elements.name.value = "";
   renderInventoryCategorySelect("");
+  syncInventoryCushionState();
   inventoryForm.elements.size.value = "";
   inventoryForm.elements.stockTotal.value = "0";
   inventoryForm.elements.unitPriceCLP.value = "0";
@@ -1238,7 +1265,7 @@ inventoryForm.addEventListener("submit", async (event) => {
   try {
     const payload = {
       name: data.get("name"),
-      category: data.get("category"),
+      category: normalizeInventoryCategory(data.get("category")) || data.get("category"),
       size: data.get("size"),
       stockTotal: data.get("stockTotal"),
       unitPriceCLP: data.get("unitPriceCLP"),
@@ -1297,6 +1324,11 @@ if (inventoryAuthorizationOwnerSelectEl) {
 if (inventoryForm.elements.authorizationStatus) {
   inventoryForm.elements.authorizationStatus.addEventListener("change", () => {
     syncInventoryAuthorizationState();
+  });
+}
+if (inventoryCategorySelectEl) {
+  inventoryCategorySelectEl.addEventListener("change", () => {
+    syncInventoryCushionState();
   });
 }
 if (addInventoryBtnEl) {

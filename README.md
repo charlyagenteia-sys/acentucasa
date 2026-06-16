@@ -42,6 +42,8 @@ Abrir en navegador: `http://localhost:4780`
 - Cada producto tiene una bodega asignada en `data/items.json` y las opciones vigentes son `Ppal Izco`, `JP`, `Amelita` y `Mamá`.
 - Cada producto también puede marcarse como `requiere autorización`, asignar un usuario autorizado y dejar su estado en `pending` o `confirmed`.
 - El estado de autorización se copia dentro de la reserva para que cada ítem muestre su propio estado.
+- Las categorías del inventario son cerradas: `Sillas`, `Platos`, `Lounge`, `Manteleria`, `Bares` y `Plaqué`.
+- El selector de cojín solo aparece para productos de categoría `Sillas`; en cualquier otra categoría queda apagado y se guarda como `No usa`.
 
 ## Cargar/editar ítems
 

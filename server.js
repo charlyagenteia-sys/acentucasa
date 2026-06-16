@@ -17,6 +17,12 @@ const INBOUND_MEDIA_DIR = path.resolve(process.env.APP_MEDIA_DIR || DEFAULT_MEDI
 const SESSION_COOKIE_NAME = "catalog_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 const SOURCE_DATA_DIR = path.join(__dirname, "data");
+const INVENTORY_CATEGORIES = ["Sillas", "Platos", "Lounge", "Manteleria", "Bares", "Plaqué"];
+const INVENTORY_CATEGORY_ALIASES = new Map([
+  ["fuentes", "Plaqué"],
+  ["bandejas", "Plaqué"],
+  ["plaque", "Plaqué"]
+]);
 
 const AUTH_USERS = [
   { username: "lula", displayName: "Lula", password: "lula321", role: "operator" },
@@ -95,7 +101,7 @@ function seedFileIfMissing(targetPath, sourcePath, fallbackValue) {
 function normalizeInventorySignature(item) {
   return JSON.stringify({
     name: String(item?.name || "").trim(),
-    category: String(item?.category || "").trim(),
+    category: normalizeInventoryCategory(item?.category),
     size: String(item?.size || "").trim(),
     stockTotal: Number(item?.stockTotal || 0),
     unitPriceCLP: Number(item?.unitPriceCLP || 0),
@@ -107,6 +113,29 @@ function normalizeInventorySignature(item) {
     imageRef: String(item?.imageRef || "").trim(),
     properties: Array.isArray(item?.properties) ? item.properties.map((value) => String(value || "").trim()) : []
   });
+}
+
+function normalizeInventoryCategory(rawValue) {
+  const raw = String(rawValue || "").trim();
+  if (!raw) {
+    return "";
+  }
+  const normalized = raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return INVENTORY_CATEGORIES.find((category) => category.toLowerCase() === normalized) || INVENTORY_CATEGORY_ALIASES.get(normalized) || "";
+}
+
+function normalizeLoadedInventoryItem(item) {
+  if (!item || typeof item !== "object") {
+    return item;
+  }
+
+  const category = normalizeInventoryCategory(item.category);
+  const cushionOption = normalizeCushionOption(item.cushionOption, category);
+  return {
+    ...item,
+    category,
+    cushionOption: cushionOption === null ? "none" : cushionOption
+  };
 }
 
 function dedupeInventoryItems(items) {
@@ -137,9 +166,9 @@ function bootstrapStorage() {
   seedFileIfMissing(WAREHOUSES_FILE, path.join(SOURCE_DATA_DIR, "warehouses.json"), DEFAULT_WAREHOUSES);
 
   const items = readJsonOrFallback(ITEMS_FILE, []);
-  const dedupedItems = dedupeInventoryItems(items);
-  if (dedupedItems.length !== items.length) {
-    writeJson(ITEMS_FILE, dedupedItems);
+  const normalizedItems = dedupeInventoryItems(items.map((item) => normalizeLoadedInventoryItem(item)));
+  if (JSON.stringify(normalizedItems) !== JSON.stringify(items)) {
+    writeJson(ITEMS_FILE, normalizedItems);
   }
 }
 
@@ -442,7 +471,7 @@ function getAuthorizationOwnerLabel(username) {
 
 function normalizeCushionOption(rawValue, category) {
   const allowed = new Set(["none", "white", "black"]);
-  const normalizedCategory = String(category || "").toLowerCase();
+  const normalizedCategory = normalizeInventoryCategory(category).toLowerCase();
   const rawOption = String(rawValue || "none").trim().toLowerCase();
 
   if (!normalizedCategory.includes("silla")) {
@@ -458,7 +487,7 @@ function normalizeCushionOption(rawValue, category) {
 
 function validateInventoryItemPayload(payload) {
   const name = String(payload.name || "").trim();
-  const category = String(payload.category || "").trim();
+  const category = normalizeInventoryCategory(payload.category);
   const size = String(payload.size || "").trim();
   const imageRef = String(payload.imageRef || "").trim();
   const warehouseId = resolveWarehouseId(payload.warehouseId);
@@ -474,7 +503,7 @@ function validateInventoryItemPayload(payload) {
     return { error: "name es obligatorio" };
   }
   if (!category) {
-    return { error: "category es obligatorio" };
+    return { error: `category debe ser una de: ${INVENTORY_CATEGORIES.join(", ")}` };
   }
   if (!size) {
     return { error: "size es obligatorio" };

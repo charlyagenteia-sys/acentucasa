@@ -33,7 +33,7 @@
   {
     "id": "item-fuente-oval-niquel-37x27",
     "name": "Fuente oval níquel",
-    "category": "Fuentes",
+    "category": "Plaqué",
     "size": "37 x 27 cm",
     "stockTotal": 17,
     "unitPriceCLP": 600,
@@ -48,7 +48,7 @@
   {
     "id": "item-bandeja-redonda-garzon-40",
     "name": "Bandeja redonda garzón plaqué",
-    "category": "Bandejas",
+    "category": "Plaqué",
     "size": "40 cm",
     "stockTotal": 24,
     "unitPriceCLP": 2000,
@@ -63,7 +63,7 @@
   {
     "id": "item-bandeja-plaque-54x32",
     "name": "Bandeja plaqué",
-    "category": "Bandejas",
+    "category": "Plaqué",
     "size": "54 x 32 cm",
     "stockTotal": 20,
     "unitPriceCLP": 3000,
