@@ -690,6 +690,12 @@ function getCategoryIconLabel(category) {
   return "??";
 }
 
+function getCategoryIconSlug(category) {
+  const normalized = normalizeInventoryCategory(category);
+  if (normalized === "Plaqué") return "plaque";
+  return normalized.toLowerCase();
+}
+
 function getCategoryItems(category) {
   const normalized = normalizeInventoryCategory(category);
   return items.filter((item) => normalizeInventoryCategory(item.category) === normalized);
@@ -720,7 +726,7 @@ function renderCategoryBrowser() {
     const stockTotal = categoryItems.reduce((sum, item) => sum + Number(item.stockTotal || 0), 0);
     return `
       <button type="button" class="category-card" data-category="${escapeHtml(category)}">
-        <span class="category-icon category-${escapeHtml(category.toLowerCase())}">${escapeHtml(getCategoryIconLabel(category))}</span>
+        <span class="category-icon category-${escapeHtml(getCategoryIconSlug(category))}">${escapeHtml(getCategoryIconLabel(category))}</span>
         <span class="category-copy">
           <strong>${escapeHtml(category)}</strong>
           <span>${productCount} productos · stock ${stockTotal}</span>
