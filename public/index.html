@@ -103,20 +103,32 @@
       </section>
 
       <section class="panel">
-        <h2>Stock diario</h2>
-        <label>Fecha <input id="stock-date" type="date" /></label>
-        <div id="stock-table"></div>
+        <div class="section-header">
+          <div>
+            <h2>Catálogo por categorías</h2>
+            <p class="catalog-hint">Primero eliges una categoría, luego abres el producto que te interesa.</p>
+          </div>
+          <button id="back-to-categories-btn" type="button" class="secondary hidden">Volver a categorías</button>
+        </div>
+        <div id="category-grid" class="category-grid"></div>
+        <div id="category-products-view" class="hidden">
+          <h3 id="category-products-title" class="category-products-title"></h3>
+          <div id="category-products" class="catalog"></div>
+        </div>
       </section>
 
       <section class="panel full">
         <div class="section-header">
           <div>
-            <h2>Catálogo</h2>
-            <p class="catalog-hint">El admin puede editar cada ítem o agregar uno nuevo desde aquí.</p>
+            <h2>Detalle de producto</h2>
+            <p class="catalog-hint">El stock diario aparece acá cuando abres un producto en una fecha.</p>
           </div>
-          <button id="add-inventory-btn" type="button" class="secondary hidden">Agregar producto</button>
+          <div class="section-actions">
+            <button id="add-inventory-btn" type="button" class="secondary hidden">Agregar producto</button>
+            <button id="close-product-detail-btn" type="button" class="secondary hidden">Cerrar producto</button>
+          </div>
         </div>
-        <div id="catalog" class="catalog"></div>
+        <div id="product-detail" class="product-detail hidden"></div>
       </section>
 
       <section class="panel full">

@@ -8,11 +8,15 @@ const logoutBtnEl = document.getElementById("logout-btn");
 
 const form = document.getElementById("reservation-form");
 const formStatus = document.getElementById("form-status");
-const catalogEl = document.getElementById("catalog");
 const reservationsEl = document.getElementById("reservations");
 const itemRowsEl = document.getElementById("item-rows");
-const stockDateEl = document.getElementById("stock-date");
-const stockTableEl = document.getElementById("stock-table");
+const categoryGridEl = document.getElementById("category-grid");
+const categoryProductsViewEl = document.getElementById("category-products-view");
+const categoryProductsTitleEl = document.getElementById("category-products-title");
+const categoryProductsEl = document.getElementById("category-products");
+const backToCategoriesBtnEl = document.getElementById("back-to-categories-btn");
+const productDetailEl = document.getElementById("product-detail");
+const closeProductDetailBtnEl = document.getElementById("close-product-detail-btn");
 const calendarGridEl = document.getElementById("calendar-grid");
 const calendarWeekdaysEl = document.getElementById("calendar-weekdays");
 const monthLabelEl = document.getElementById("month-label");
@@ -46,7 +50,6 @@ const eventLocationSelectEl = document.getElementById("event-location-select");
 const banqueteroSelectEl = document.getElementById("banquetero-select");
 
 const todayISO = new Date().toISOString().slice(0, 10);
-stockDateEl.value = todayISO;
 
 let currentUser = null;
 let items = [];
@@ -59,6 +62,9 @@ let editingInventoryId = null;
 let inventoryMode = "edit";
 let inventoryPendingImageFile = null;
 let editingInventoryImageUrl = "";
+let activeCategory = "";
+let activeProductId = "";
+let activeProductStockDate = todayISO;
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const ACTIVE_STOCK_STATUSES = new Set(["pending", "confirmed", "delivered"]);
 const INVENTORY_CATEGORIES = ["Sillas", "Platos", "Lounge", "Manteleria", "Bares", "Plaqué"];
@@ -546,7 +552,6 @@ function fillFormFromReservation(reservation) {
 
 function resetFormForCreateMode() {
   form.reset();
-  stockDateEl.value = todayISO;
   form.elements.startDate.value = "";
   form.elements.endDate.value = "";
   form.elements.status.value = "confirmed";
@@ -571,14 +576,24 @@ function clearAppData() {
   warehouses = [];
   selectedReservationId = null;
   editingReservationId = null;
-  catalogEl.innerHTML = "";
   reservationsEl.innerHTML = "";
-  stockTableEl.innerHTML = "";
   calendarGridEl.innerHTML = "";
   calendarWeekdaysEl.innerHTML = "";
   reservationDetailEl.innerHTML = "<p>Toca una reserva para abrir su detalle.</p>";
   if (itemRowsEl) {
     itemRowsEl.innerHTML = "";
+  }
+  if (categoryGridEl) {
+    categoryGridEl.innerHTML = "";
+  }
+  if (categoryProductsEl) {
+    categoryProductsEl.innerHTML = "";
+  }
+  if (categoryProductsTitleEl) {
+    categoryProductsTitleEl.textContent = "";
+  }
+  if (productDetailEl) {
+    productDetailEl.innerHTML = "";
   }
   formStatus.textContent = "";
   resetInventoryForm();
@@ -664,80 +679,232 @@ function renderItemRows() {
   }
 }
 
-function renderCatalog() {
-  catalogEl.innerHTML = items
+function getCategoryIconLabel(category) {
+  const normalized = normalizeInventoryCategory(category);
+  if (normalized === "Sillas") return "SI";
+  if (normalized === "Platos") return "PL";
+  if (normalized === "Lounge") return "LO";
+  if (normalized === "Manteleria") return "MA";
+  if (normalized === "Bares") return "BA";
+  if (normalized === "Plaqué") return "PQ";
+  return "??";
+}
+
+function getCategoryItems(category) {
+  const normalized = normalizeInventoryCategory(category);
+  return items.filter((item) => normalizeInventoryCategory(item.category) === normalized);
+}
+
+function setCatalogVisibility({ categoryVisible = true, productsVisible = false, detailVisible = false } = {}) {
+  if (categoryGridEl) {
+    categoryGridEl.classList.toggle("hidden", !categoryVisible);
+  }
+  if (categoryProductsViewEl) {
+    categoryProductsViewEl.classList.toggle("hidden", !productsVisible);
+  }
+  if (productDetailEl) {
+    productDetailEl.classList.toggle("hidden", !detailVisible);
+  }
+  if (backToCategoriesBtnEl) {
+    backToCategoriesBtnEl.classList.toggle("hidden", !productsVisible && !detailVisible);
+  }
+  if (closeProductDetailBtnEl) {
+    closeProductDetailBtnEl.classList.toggle("hidden", !detailVisible);
+  }
+}
+
+function renderCategoryBrowser() {
+  const categories = INVENTORY_CATEGORIES.map((category) => {
+    const categoryItems = getCategoryItems(category);
+    const productCount = categoryItems.length;
+    const stockTotal = categoryItems.reduce((sum, item) => sum + Number(item.stockTotal || 0), 0);
+    return `
+      <button type="button" class="category-card" data-category="${escapeHtml(category)}">
+        <span class="category-icon category-${escapeHtml(category.toLowerCase())}">${escapeHtml(getCategoryIconLabel(category))}</span>
+        <span class="category-copy">
+          <strong>${escapeHtml(category)}</strong>
+          <span>${productCount} productos · stock ${stockTotal}</span>
+        </span>
+      </button>
+    `;
+  }).join("");
+
+  if (categoryGridEl) {
+    categoryGridEl.innerHTML = categories;
+    categoryGridEl.querySelectorAll(".category-card").forEach((button) => {
+      button.addEventListener("click", () => {
+        openCategory(button.getAttribute("data-category"));
+      });
+    });
+  }
+}
+
+function renderCategoryProducts() {
+  if (!categoryProductsEl || !categoryProductsTitleEl) {
+    return;
+  }
+
+  const category = normalizeInventoryCategory(activeCategory);
+  const categoryItems = getCategoryItems(category);
+  categoryProductsTitleEl.textContent = `${category} · productos`;
+
+  if (categoryItems.length === 0) {
+    categoryProductsEl.innerHTML = "<p>No hay productos en esta categoría.</p>";
+    return;
+  }
+
+  categoryProductsEl.innerHTML = categoryItems
     .map(
       (item) => `
-    <article class="card ${currentUser && currentUser.role === "admin" ? "clickable" : ""}" ${
-      currentUser && currentUser.role === "admin"
-        ? `tabindex="0" role="button" aria-label="Abrir ${escapeHtml(item.name)} ${escapeHtml(item.size)}"`
-        : ""
-    } data-item-id="${escapeHtml(item.id)}">
-      <div class="thumb">
-        ${
-          item.imageUrl
-            ? `<img src="${item.imageUrl}" alt="${item.name} ${item.size}" loading="lazy" />`
-            : `<div class="thumb-fallback">Sin imagen disponible</div>`
-        }
-      </div>
-      <div class="card-body">
-        ${currentUser && currentUser.role === "admin" ? '<span class="admin-tag">Admin</span>' : ""}
-        <strong>${item.name} ${item.size}</strong>
-        <div class="card-meta">
-          <div>Categoría: ${escapeHtml(getCategoryLabel(item.category))}</div>
-          <div>Bodega: ${item.warehouseName || getWarehouseLabel(item.warehouseId)}</div>
-          <div>Stock total: ${item.stockTotal}</div>
-          <div>Valor unitario: ${fmtCLP(item.unitPriceCLP)}</div>
-          <div>Propiedades: ${item.properties.join(", ")}</div>
-          ${String(item.category || "").toLowerCase().includes("silla") ? `<div>Cojín: ${getCushionLabel(item.cushionOption)}</div>` : ""}
-          <div>Autorización: <span class="approval-pill ${escapeHtml(item.authorizationStatus || "not_required")}">${escapeHtml(getAuthorizationStatusLabel(item.authorizationStatus))}</span></div>
-          ${item.authorizationRequired ? `<div>Autoriza: ${escapeHtml(getAuthorizationOwnerLabel(item.authorizationOwnerUsername))}</div>` : ""}
-        </div>
-        ${
-          currentUser && currentUser.role === "admin"
-            ? `<div class="card-actions">
-                 <button type="button" class="secondary edit-inventory-btn" data-item-id="${escapeHtml(item.id)}">Editar inventario</button>
-               </div>`
-            : ""
-        }
-        ${currentUser && currentUser.role === "admin" ? '<div class="card-cta">Click en la tarjeta para abrir la ficha.</div>' : ""}
-      </div>
-    </article>
-  `
+        <button type="button" class="product-card" data-item-id="${escapeHtml(item.id)}">
+          <div class="thumb">
+            ${
+              item.imageUrl
+                ? `<img src="${item.imageUrl}" alt="${item.name} ${item.size}" loading="lazy" />`
+                : `<div class="thumb-fallback">Sin imagen disponible</div>`
+            }
+          </div>
+          <div class="card-body">
+            <strong>${escapeHtml(item.name)}</strong>
+            <div class="card-meta">
+              <div>${escapeHtml(item.size)}</div>
+              <div class="card-cta">Abrir producto</div>
+            </div>
+          </div>
+        </button>
+      `
     )
     .join("");
 
-  const openItem = (itemId) => {
-    openInventoryEditor(itemId);
-  };
-
-  catalogEl.querySelectorAll(".card.clickable").forEach((card) => {
-    card.addEventListener("click", (event) => {
-      const itemId = event.currentTarget.getAttribute("data-item-id");
-      if (!itemId) return;
-      if (event.target.closest("button")) {
-        return;
-      }
-      if (currentUser && currentUser.role === "admin") {
-        openItem(itemId);
-      }
-    });
-    card.addEventListener("keydown", (event) => {
-      if ((event.key === "Enter" || event.key === " ") && currentUser && currentUser.role === "admin") {
-        event.preventDefault();
-        const itemId = event.currentTarget.getAttribute("data-item-id");
-        if (itemId) openItem(itemId);
-      }
+  categoryProductsEl.querySelectorAll(".product-card").forEach((button) => {
+    button.addEventListener("click", () => {
+      openProduct(button.getAttribute("data-item-id"));
     });
   });
+}
 
-  catalogEl.querySelectorAll(".edit-inventory-btn").forEach((btn) => {
-    btn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const itemId = event.currentTarget.getAttribute("data-item-id");
-      openItem(itemId);
+function renderProductDetail() {
+  if (!productDetailEl) {
+    return;
+  }
+
+  const item = items.find((entry) => entry.id === activeProductId);
+  if (!item) {
+    productDetailEl.innerHTML = "";
+    return;
+  }
+
+  const isChair = normalizeInventoryCategory(item.category) === "Sillas";
+  productDetailEl.innerHTML = `
+    <div class="product-detail-layout">
+      <div class="product-detail-summary">
+        <div class="thumb product-detail-thumb">
+          ${
+            item.imageUrl
+              ? `<img src="${item.imageUrl}" alt="${item.name} ${item.size}" loading="lazy" />`
+              : `<div class="thumb-fallback">Sin imagen disponible</div>`
+          }
+        </div>
+        <div class="product-detail-meta">
+          <h3>${escapeHtml(item.name)}</h3>
+          <p>${escapeHtml(item.size)}</p>
+          <p><strong>Categoría:</strong> ${escapeHtml(getCategoryLabel(item.category))}</p>
+          <p><strong>Bodega:</strong> ${escapeHtml(item.warehouseName || getWarehouseLabel(item.warehouseId))}</p>
+          <p><strong>Stock total:</strong> ${escapeHtml(item.stockTotal)}</p>
+          <p><strong>Valor unitario:</strong> ${fmtCLP(item.unitPriceCLP)}</p>
+          <p><strong>Propiedades:</strong> ${escapeHtml((item.properties || []).join(", ") || "-")}</p>
+          ${isChair ? `<p><strong>Cojín:</strong> ${escapeHtml(getCushionLabel(item.cushionOption))}</p>` : ""}
+          ${
+            currentUser && currentUser.role === "admin"
+              ? `<button type="button" class="secondary edit-product-btn">Editar inventario</button>`
+              : ""
+          }
+        </div>
+      </div>
+      <div class="product-stock-panel">
+        <div class="stock-controls">
+          <label>Fecha
+            <input id="product-stock-date" type="date" value="${escapeHtml(activeProductStockDate)}" />
+          </label>
+        </div>
+        <div id="product-stock-table"></div>
+      </div>
+    </div>
+  `;
+
+  const dateInput = productDetailEl.querySelector("#product-stock-date");
+  if (dateInput) {
+    dateInput.addEventListener("change", async (event) => {
+      activeProductStockDate = event.target.value || todayISO;
+      await loadProductStock();
     });
-  });
+  }
+
+  const editBtn = productDetailEl.querySelector(".edit-product-btn");
+  if (editBtn) {
+    editBtn.addEventListener("click", () => {
+      openInventoryEditor(item.id);
+    });
+  }
+}
+
+async function loadProductStock() {
+  const product = items.find((entry) => entry.id === activeProductId);
+  const tableEl = productDetailEl ? productDetailEl.querySelector("#product-stock-table") : null;
+  if (!product || !tableEl) {
+    return;
+  }
+
+  const date = activeProductStockDate || todayISO;
+  const stock = await api(`/api/stock?date=${date}`);
+  const stockRow = stock.find((entry) => entry.itemId === product.id);
+  const rows = stockRow
+    ? `<tr>
+         <td>${escapeHtml(product.name)} ${escapeHtml(product.size)}</td>
+         <td>${escapeHtml(stockRow.stockTotal)}</td>
+         <td>${escapeHtml(stockRow.reserved)}</td>
+         <td>${escapeHtml(stockRow.available)}</td>
+       </tr>`
+    : `<tr><td colspan="4">Sin datos para esta fecha.</td></tr>`;
+
+  tableEl.innerHTML = `<table class="table">
+    <thead><tr><th>Producto</th><th>Total</th><th>Reservado</th><th>Disponible</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function openCategory(category) {
+  activeCategory = normalizeInventoryCategory(category);
+  activeProductId = "";
+  activeProductStockDate = todayISO;
+  renderCategoryProducts();
+  setCatalogVisibility({ categoryVisible: true, productsVisible: true, detailVisible: false });
+}
+
+async function openProduct(itemId) {
+  if (!itemId) {
+    return;
+  }
+  activeProductId = itemId;
+  activeProductStockDate = todayISO;
+  const item = items.find((entry) => entry.id === itemId);
+  if (!item) {
+    return;
+  }
+  if (!activeCategory) {
+    activeCategory = normalizeInventoryCategory(item.category);
+    renderCategoryProducts();
+  }
+  renderProductDetail();
+  setCatalogVisibility({ categoryVisible: true, productsVisible: true, detailVisible: true });
+  await loadProductStock();
+}
+
+function closeProductDetail() {
+  activeProductId = "";
+  activeProductStockDate = todayISO;
+  renderProductDetail();
+  setCatalogVisibility({ categoryVisible: true, productsVisible: true, detailVisible: false });
 }
 
 function isPrintSheetOpen() {
@@ -835,31 +1002,15 @@ async function loadReservations() {
         method: "PATCH",
         body: JSON.stringify({ status })
       });
-      await Promise.all([loadReservations(), loadStock(), loadCalendar()]);
+      await Promise.all([loadReservations(), loadCalendar()]);
+      if (activeProductId) {
+        await loadProductStock();
+      }
       renderReservationDetail();
     });
   });
 
   renderReservationDetail();
-}
-
-async function loadStock() {
-  const date = stockDateEl.value;
-  const stock = await api(`/api/stock?date=${date}`);
-  const rows = stock
-    .map(
-      (s) => `<tr>
-      <td>${s.name} ${s.size}</td>
-      <td>${s.stockTotal}</td>
-      <td>${s.reserved}</td>
-      <td>${s.available}</td>
-    </tr>`
-    )
-    .join("");
-  stockTableEl.innerHTML = `<table class="table">
-    <thead><tr><th>Ítem</th><th>Total</th><th>Reservado</th><th>Disponible</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
 }
 
 async function loadCalendar() {
@@ -1027,10 +1178,8 @@ function renderReservationDetail() {
     editBtn.addEventListener("click", () => {
       setEditMode(reservation);
       fillFormFromReservation(reservation);
-      catalogEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      const firstQtyInput = catalogEl.querySelector('input[type="number"]');
-      if (firstQtyInput) {
-        firstQtyInput.focus({ preventScroll: true });
+      if (itemRowsEl) {
+        itemRowsEl.scrollIntoView({ behavior: "smooth", block: "start" });
       }
       formStatus.textContent = "Editando reserva abierta.";
       formStatus.classList.remove("error");
@@ -1248,7 +1397,10 @@ form.addEventListener("submit", async (event) => {
 
     formStatus.textContent = isEditing ? "Reserva actualizada." : "Reserva guardada.";
     resetFormForCreateMode();
-    await Promise.all([loadReservations(), loadStock(), loadCalendar()]);
+    await Promise.all([loadReservations(), loadCalendar()]);
+    if (activeProductId) {
+      await loadProductStock();
+    }
   } catch (error) {
     formStatus.textContent = error.message;
     formStatus.classList.add("error");
@@ -1310,7 +1462,6 @@ inventoryForm.addEventListener("submit", async (event) => {
   }
 });
 
-stockDateEl.addEventListener("change", loadStock);
 if (inventoryForm.elements.authorizationRequired) {
   inventoryForm.elements.authorizationRequired.addEventListener("change", () => {
     syncInventoryAuthorizationState();
@@ -1329,6 +1480,19 @@ if (inventoryForm.elements.authorizationStatus) {
 if (inventoryCategorySelectEl) {
   inventoryCategorySelectEl.addEventListener("change", () => {
     syncInventoryCushionState();
+  });
+}
+if (backToCategoriesBtnEl) {
+  backToCategoriesBtnEl.addEventListener("click", () => {
+    activeCategory = "";
+    activeProductId = "";
+    renderCategoryBrowser();
+    setCatalogVisibility({ categoryVisible: true, productsVisible: false, detailVisible: false });
+  });
+}
+if (closeProductDetailBtnEl) {
+  closeProductDetailBtnEl.addEventListener("click", () => {
+    closeProductDetail();
   });
 }
 if (addInventoryBtnEl) {
@@ -1475,9 +1639,13 @@ async function loadInitialData() {
     }
   }
   resetFormForCreateMode();
-  renderCatalog();
+  activeCategory = "";
+  activeProductId = "";
+  activeProductStockDate = todayISO;
+  renderCategoryBrowser();
+  setCatalogVisibility({ categoryVisible: true, productsVisible: false, detailVisible: false });
   await loadReservations();
-  await Promise.all([loadStock(), loadCalendar()]);
+  await loadCalendar();
 }
 
 async function init() {
