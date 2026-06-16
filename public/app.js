@@ -65,6 +65,7 @@ let editingInventoryImageUrl = "";
 let activeCategory = "";
 let activeProductId = "";
 let activeProductStockDate = todayISO;
+const catalogQuantityByItemId = new Map();
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const ACTIVE_STOCK_STATUSES = new Set(["pending", "confirmed", "delivered"]);
 const INVENTORY_CATEGORIES = ["Sillas", "Platos", "Lounge", "Manteleria", "Bares", "Plaqué"];
@@ -169,7 +170,37 @@ function canEditReservation(reservation) {
 }
 
 function getCatalogQuantityInput(itemId) {
-  return itemRowsEl ? itemRowsEl.querySelector(`input[name="qty_${CSS.escape(itemId)}"]`) : null;
+  if (itemRowsEl) {
+    const legacyInput = itemRowsEl.querySelector(`input[name="qty_${CSS.escape(itemId)}"]`);
+    if (legacyInput) {
+      return legacyInput;
+    }
+  }
+  return categoryProductsEl ? categoryProductsEl.querySelector(`input[name="qty_${CSS.escape(itemId)}"]`) : null;
+}
+
+function setCatalogQuantity(itemId, quantity) {
+  const parsed = Number.parseInt(String(quantity || "0"), 10);
+  const finalQuantity = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  if (finalQuantity > 0) {
+    catalogQuantityByItemId.set(itemId, finalQuantity);
+  } else {
+    catalogQuantityByItemId.delete(itemId);
+  }
+}
+
+function clearCatalogQuantities() {
+  catalogQuantityByItemId.clear();
+}
+
+function hydrateCatalogQuantitiesFromReservation(reservationItems = []) {
+  clearCatalogQuantities();
+  for (const entry of reservationItems) {
+    const quantity = Number(entry.quantity) || 0;
+    if (quantity > 0) {
+      catalogQuantityByItemId.set(entry.itemId, quantity);
+    }
+  }
 }
 
 function getApprovalLabel(approvalStatus) {
@@ -540,13 +571,9 @@ function fillFormFromReservation(reservation) {
     banqueteroSelectEl.value = reservation.banquetero || "";
   }
   form.elements.notes.value = reservation.notes || "";
-
-  const qtyByItem = new Map((reservation.items || []).map((it) => [it.itemId, Number(it.quantity) || 0]));
-  for (const item of items) {
-    const input = getCatalogQuantityInput(item.id);
-    if (input) {
-      input.value = String(qtyByItem.get(item.id) || 0);
-    }
+  hydrateCatalogQuantitiesFromReservation(reservation.items || []);
+  if (activeCategory) {
+    renderCategoryProducts();
   }
 }
 
@@ -565,15 +592,23 @@ function resetFormForCreateMode() {
   if (banqueteroSelectEl) {
     banqueteroSelectEl.value = "";
   }
+  clearCatalogQuantities();
   renderItemRows();
   setEditMode(null);
   updateWarehouseAlert();
+  if (activeCategory) {
+    renderCategoryProducts();
+  }
 }
 
 function clearAppData() {
   items = [];
   reservations = [];
   warehouses = [];
+  clearCatalogQuantities();
+  activeCategory = "";
+  activeProductId = "";
+  activeProductStockDate = todayISO;
   selectedReservationId = null;
   editingReservationId = null;
   reservationsEl.innerHTML = "";
@@ -764,11 +799,10 @@ function renderHomeCatalog() {
   categoryGridEl.innerHTML = cards;
   categoryGridEl.querySelectorAll(".home-category-card").forEach((button) => {
     button.addEventListener("click", () => {
-      const categoryUrl = buildCatalogCategoryUrl(button.getAttribute("data-category"));
-      const opened = window.open(categoryUrl, "_blank", "noopener,noreferrer");
-      if (!opened) {
-        window.location.href = categoryUrl;
-      }
+      const category = button.getAttribute("data-category");
+      const categoryUrl = buildCatalogCategoryUrl(category);
+      openCategory(category);
+      window.history.pushState({ category }, "", categoryUrl);
     });
   });
 }
@@ -780,7 +814,7 @@ function renderCategoryProducts() {
 
   const category = normalizeInventoryCategory(activeCategory);
   const categoryItems = getCategoryItems(category);
-  categoryProductsTitleEl.textContent = category;
+  categoryProductsTitleEl.textContent = category ? `${category} · selecciona cantidades` : "";
 
   if (categoryItems.length === 0) {
     categoryProductsEl.innerHTML = "<p>No hay productos en esta categoría.</p>";
@@ -790,30 +824,58 @@ function renderCategoryProducts() {
   categoryProductsEl.innerHTML = categoryItems
     .map(
       (item) => `
-        <a
-          class="product-card"
-          href="${escapeHtml(buildCatalogProductUrl(item))}"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <div class="thumb">
-            ${
-              item.imageUrl
-                ? `<img src="${item.imageUrl}" alt="${item.name} ${item.size}" loading="lazy" />`
-                : `<div class="thumb-fallback">Sin imagen disponible</div>`
-            }
-          </div>
-          <div class="card-body">
-            <strong>${escapeHtml(item.name)}</strong>
-            <div class="card-meta">
-              <div>${escapeHtml(item.size)}</div>
-              <div class="card-cta">Abrir en pestaña nueva</div>
+        <article class="product-card">
+          <a
+            class="product-card-link"
+            href="${escapeHtml(buildCatalogProductUrl(item))}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <div class="thumb">
+              ${
+                item.imageUrl
+                  ? `<img src="${item.imageUrl}" alt="${item.name} ${item.size}" loading="lazy" />`
+                  : `<div class="thumb-fallback">Sin imagen disponible</div>`
+              }
             </div>
+            <div class="card-body">
+              <strong>${escapeHtml(item.name)}</strong>
+              <div class="card-meta">
+                <div>${escapeHtml(item.size)}</div>
+                <div>${escapeHtml(getWarehouseLabel(item.warehouseId))}</div>
+                <div class="card-cta">Abrir ficha en pestaña nueva</div>
+              </div>
+            </div>
+          </a>
+          <div class="product-card-footer">
+            <label class="product-qty-label">
+              Cantidad
+              <input
+                type="number"
+                class="product-qty-input"
+                data-item-id="${escapeHtml(item.id)}"
+                name="qty_${escapeHtml(item.id)}"
+                min="0"
+                max="${escapeHtml(item.stockTotal)}"
+                step="1"
+                value="${escapeHtml(catalogQuantityByItemId.get(item.id) || 0)}"
+              />
+            </label>
           </div>
-        </a>
+        </article>
       `
     )
     .join("");
+
+  categoryProductsEl.querySelectorAll(".product-qty-input").forEach((input) => {
+    input.addEventListener("input", (event) => {
+      const itemId = event.currentTarget.getAttribute("data-item-id");
+      if (!itemId) {
+        return;
+      }
+      setCatalogQuantity(itemId, event.currentTarget.value);
+    });
+  });
 }
 
 function renderProductDetail() {
@@ -944,6 +1006,14 @@ async function applyCatalogRouteFromLocation() {
   const params = new URLSearchParams(window.location.search);
   const productId = String(params.get("product") || "").trim();
   const category = normalizeInventoryCategory(params.get("category"));
+
+  if (!category && !productId) {
+    activeCategory = "";
+    activeProductId = "";
+    renderHomeCatalog();
+    setCatalogVisibility({ categoryVisible: true, productsVisible: false, detailVisible: false });
+    return;
+  }
 
   if (category) {
     openCategory(category);
@@ -1307,9 +1377,11 @@ function getCatalogQuantities() {
   return items
     .map((item) => {
       const input = getCatalogQuantityInput(item.id);
+      const quantity = Number(input ? input.value : catalogQuantityByItemId.get(item.id) || 0) || 0;
+      setCatalogQuantity(item.id, quantity);
       return {
         itemId: item.id,
-        quantity: Number(input ? input.value : 0) || 0
+        quantity
       };
     })
     .filter((entry) => entry.quantity > 0);
@@ -1444,6 +1516,7 @@ form.addEventListener("submit", async (event) => {
 
     formStatus.textContent = isEditing ? "Reserva actualizada." : "Reserva guardada.";
     resetFormForCreateMode();
+    clearCatalogQuantities();
     await Promise.all([loadReservations(), loadCalendar()]);
     if (activeProductId) {
       await loadProductStock();
@@ -1531,7 +1604,8 @@ if (inventoryCategorySelectEl) {
 }
 if (backToCategoriesBtnEl) {
   backToCategoriesBtnEl.addEventListener("click", () => {
-    window.location.assign(window.location.pathname);
+    window.history.pushState({}, "", window.location.pathname);
+    void applyCatalogRouteFromLocation();
   });
 }
 if (closeProductDetailBtnEl) {
@@ -1618,6 +1692,9 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && isPrintSheetOpen()) {
     closeReservationSheet();
   }
+});
+window.addEventListener("popstate", () => {
+  void applyCatalogRouteFromLocation();
 });
 prevMonthBtn.addEventListener("click", async () => {
   currentMonth = monthShift(currentMonth, -1);

@@ -10,7 +10,7 @@ App local para gestionar reservas por fecha, controlar stock diario y visualizar
 - Estados de reserva (`pending`, `confirmed`, `delivered`, `returned`, `cancelled`) con actualización en vivo.
 - Persistencia en disco en archivos JSON.
 - Asignación de bodega por producto y estado de autorización por ítem, visible dentro de la reserva.
-- La portada muestra `Nueva reserva` arriba a la izquierda, `Categorías` debajo y el `Calendario de reservas` a la derecha; desde cada categoría se abre la navegación a productos y la ficha completa sigue viva en una página aparte con stock diario por fecha.
+- La portada muestra `Nueva reserva` arriba a la izquierda, `Categorías` debajo y el `Calendario de reservas` a la derecha; al abrir una categoría se muestran sus productos con cantidad editable y la reserva se guarda desde el botón superior.
 
 ## Estructura
 
@@ -45,7 +45,7 @@ Abrir en navegador: `http://localhost:4780`
 - El estado de autorización se copia dentro de la reserva para que cada ítem muestre su propio estado.
 - Las categorías del inventario son cerradas: `Sillas`, `Platos`, `Lounge`, `Manteleria`, `Bares` y `Plaqué`.
 - El selector de cojín solo aparece para productos de categoría `Sillas`; en cualquier otra categoría queda apagado y se guarda como `No usa`.
-- El home solo muestra el catálogo por categorías en el bloque inferior izquierdo. Cada tarjeta de categoría abre su vista aparte y desde ahí cada producto sigue abriendo una pestaña nueva con la ficha completa; el stock diario solo aparece al abrir un producto en una fecha específica.
+- El home solo muestra el catálogo por categorías en el bloque inferior izquierdo. Cada tarjeta de categoría abre sus productos en la misma vista, cada producto muestra un input de cantidad y desde ahí cada ficha sigue abriéndose en una pestaña nueva; el stock diario solo aparece al abrir un producto en una fecha específica.
 
 ## Cargar/editar ítems
 
