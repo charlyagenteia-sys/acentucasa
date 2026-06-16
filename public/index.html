@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Arriendo Plaqué - MVP</title>
+    <title>AC Arriendos - MVP</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <header class="topbar">
-      <h1>Arriendo Plaqué</h1>
+      <h1>AC Arriendos</h1>
       <p>MVP local: calendario, reservas y stock diario</p>
       <div id="auth-bar" class="auth-bar hidden">
         <span id="current-user-label"></span>
@@ -33,20 +33,12 @@
       <section class="panel">
         <h2 id="reservation-form-title">Nueva reserva</h2>
         <form id="reservation-form">
-          <label>Nombre cliente<input name="customerName" required /></label>
-          <label>Fecha retiro<input type="date" name="startDate" required /></label>
-          <label>Fecha devolución<input type="date" name="endDate" required /></label>
-          <label>Estado inicial
-            <select name="status">
-              <option value="confirmed">Confirmada</option>
-              <option value="pending">Pendiente</option>
-            </select>
-          </label>
-          <label>Bodega solicitada
-            <select name="warehouseId" id="warehouse-select">
-              <option value="">Sin bodega específica</option>
-            </select>
-          </label>
+          <input type="hidden" name="startDate" />
+          <input type="hidden" name="endDate" />
+          <input type="hidden" name="status" value="confirmed" />
+          <input type="hidden" name="warehouseId" value="" />
+          <label>Novios<input name="customerName" required /></label>
+          <label>Fecha evento<input type="date" name="eventDate" id="event-date-input" required /></label>
           <label>Lugar del evento
             <select name="eventLocation" id="event-location-select" required>
               <option value="">Selecciona un lugar</option>
@@ -68,7 +60,29 @@
               <option value="senora-amelia">Señora Amelia</option>
             </select>
           </label>
-          <p id="warehouse-alert" class="status approval-banner"></p>
+          <fieldset class="reservation-categories" aria-labelledby="reservation-categories-title">
+            <legend id="reservation-categories-title">Categorías</legend>
+            <div class="reservation-category-list">
+              <div class="reservation-category">
+                <span class="reservation-category-icon category-sillas" aria-hidden="true">SI</span>
+                <div class="reservation-category-copy">
+                  <strong>Sillas</strong>
+                </div>
+              </div>
+              <div class="reservation-category">
+                <span class="reservation-category-icon category-plaque" aria-hidden="true">PL</span>
+                <div class="reservation-category-copy">
+                  <strong>Plaqué</strong>
+                </div>
+              </div>
+              <div class="reservation-category">
+                <span class="reservation-category-icon category-sofa" aria-hidden="true">SO</span>
+                <div class="reservation-category-copy">
+                  <strong>Sofá negro</strong>
+                </div>
+              </div>
+            </div>
+          </fieldset>
           <div id="item-rows"></div>
           <label>Notas<textarea name="notes" rows="2"></textarea></label>
           <button id="reservation-submit-btn" type="submit">Guardar reserva</button>
@@ -127,13 +141,35 @@
         <form id="inventory-form">
           <input type="hidden" name="id" />
           <label>Nombre<input name="name" required /></label>
-          <label>Categoría<input name="category" required /></label>
+          <label>Categoría
+            <select name="category" required id="inventory-category-select"></select>
+          </label>
           <label>Medida<input name="size" required /></label>
           <label>Stock total<input name="stockTotal" type="number" min="0" step="1" required /></label>
           <label>Valor unitario (CLP)<input name="unitPriceCLP" type="number" min="0" step="1" required /></label>
           <label>Bodega asignada
             <select name="warehouseId" id="inventory-warehouse-select" required></select>
           </label>
+          <fieldset class="choice-fieldset">
+            <legend>Autorización</legend>
+            <div class="choice-group choice-stack">
+              <label class="choice-option inline">
+                <input type="checkbox" name="authorizationRequired" />
+                <span>Requiere autorización</span>
+              </label>
+              <label>
+                Usuario que autoriza
+                <select name="authorizationOwnerUsername" id="inventory-authorization-owner-select"></select>
+              </label>
+              <label>
+                Estado de autorización
+                <select name="authorizationStatus">
+                  <option value="pending">Pendiente</option>
+                  <option value="confirmed">Confirmado</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
           <label>Propiedades
             <textarea name="properties" rows="3" placeholder="Una propiedad por línea o separadas por coma"></textarea>
           </label>

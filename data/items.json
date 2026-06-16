@@ -220,5 +220,26 @@
     "properties": [],
     "createdAt": "2026-06-15T14:35:14.853Z",
     "updatedAt": "2026-06-15T14:35:14.853Z"
+  },
+  {
+    "id": "item-sofa-negro-capitone",
+    "name": "Sofá negro capitoné",
+    "category": "Lounge",
+    "size": "Estandar",
+    "stockTotal": 1,
+    "unitPriceCLP": 0,
+    "warehouseId": "amelita",
+    "authorizationRequired": true,
+    "authorizationStatus": "pending",
+    "authorizationOwnerUsername": "sraame",
+    "cushionOption": "none",
+    "imageRef": "",
+    "properties": [
+      "Color negro",
+      "Terminación capitoné",
+      "Uso: lounge"
+    ],
+    "createdAt": "2026-06-16T09:35:00.000Z",
+    "updatedAt": "2026-06-16T09:35:00.000Z"
   }
 ]

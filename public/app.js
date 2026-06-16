@@ -22,8 +22,6 @@ const reservationDetailEl = document.getElementById("reservation-detail");
 const formTitleEl = document.getElementById("reservation-form-title");
 const formSubmitBtn = document.getElementById("reservation-submit-btn");
 const cancelEditBtn = document.getElementById("cancel-edit-btn");
-const warehouseSelectEl = document.getElementById("warehouse-select");
-const warehouseAlertEl = document.getElementById("warehouse-alert");
 const addInventoryBtnEl = document.getElementById("add-inventory-btn");
 const inventoryModalEl = document.getElementById("inventory-modal");
 const inventoryModalTitleEl = document.getElementById("inventory-modal-title");
@@ -34,12 +32,15 @@ const inventorySaveBtn = document.getElementById("inventory-save-btn");
 const inventoryFormStatus = document.getElementById("inventory-form-status");
 const inventoryCancelBtn = document.getElementById("inventory-cancel-btn");
 const inventoryWarehouseSelectEl = document.getElementById("inventory-warehouse-select");
+const inventoryCategorySelectEl = document.getElementById("inventory-category-select");
+const inventoryAuthorizationOwnerSelectEl = document.getElementById("inventory-authorization-owner-select");
 const inventoryImageDropzoneEl = document.getElementById("inventory-image-dropzone");
 const inventoryImagePreviewEl = document.getElementById("inventory-image-preview");
 const inventoryImageInputEl = document.getElementById("inventory-image-input");
 const inventoryImageBrowseEl = document.getElementById("inventory-image-browse");
 const inventoryImageClearEl = document.getElementById("inventory-image-clear");
 const printOrderSheetEl = document.getElementById("print-order-sheet");
+const eventDateInputEl = document.getElementById("event-date-input");
 const eventLocationSelectEl = document.getElementById("event-location-select");
 const banqueteroSelectEl = document.getElementById("banquetero-select");
 
@@ -59,10 +60,28 @@ let inventoryPendingImageFile = null;
 let editingInventoryImageUrl = "";
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const ACTIVE_STOCK_STATUSES = new Set(["pending", "confirmed", "delivered"]);
+const INVENTORY_CATEGORIES = ["Sillas", "Platos", "Lounge", "Manteleria", "Bares", "Plaqué"];
+const INVENTORY_CATEGORY_LABELS = new Map(INVENTORY_CATEGORIES.map((category) => [category.toLowerCase(), category]));
+const AUTHORIZATION_OWNER_OPTIONS = [
+  { value: "", label: "Sin usuario" },
+  { value: "lula", label: "Lula" },
+  { value: "amelita", label: "Amelita" },
+  { value: "sraame", label: "SraAme" },
+  { value: "nancy", label: "Nancy" },
+  { value: "kathy", label: "Kathy" },
+  { value: "jpi", label: "JPI" },
+  { value: "jeisson", label: "Jeisson" }
+];
+const AUTHORIZATION_OWNER_LABELS = new Map(AUTHORIZATION_OWNER_OPTIONS.map((option) => [option.value, option.label]));
 const CUSHION_OPTIONS = new Map([
   ["none", "No usa"],
   ["white", "Blanco"],
   ["black", "Negro"]
+]);
+const AUTHORIZATION_STATUS_LABELS = new Map([
+  ["not_required", "No requiere"],
+  ["pending", "Pendiente"],
+  ["confirmed", "Confirmado"]
 ]);
 const EVENT_LOCATION_OPTIONS = new Map([
   ["noviciado", "Noviciado"],
@@ -140,16 +159,7 @@ function getApprovalLabel(approvalStatus) {
 }
 
 function updateWarehouseAlert() {
-  const warehouseId = warehouseSelectEl.value;
-  const warehouse = getWarehouseById(warehouseId);
-  if (!warehouse) {
-    warehouseAlertEl.textContent = "";
-    warehouseAlertEl.classList.add("empty");
-    return;
-  }
-
-  warehouseAlertEl.textContent = `Alerta de aprobación: esta reserva quedará pendiente porque pide ${warehouse.name}.`;
-  warehouseAlertEl.classList.remove("empty");
+  return;
 }
 
 function renderInventoryWarehouseSelect() {
@@ -183,6 +193,21 @@ function setInventoryCushionOption(value = "none") {
   });
 }
 
+function setInventoryAuthorizationRequired(required) {
+  const checkbox = inventoryForm.elements.authorizationRequired;
+  if (checkbox) {
+    checkbox.checked = Boolean(required);
+  }
+  syncInventoryAuthorizationState();
+}
+
+function setInventoryAuthorizationStatus(value = "pending") {
+  if (inventoryForm.elements.authorizationStatus) {
+    inventoryForm.elements.authorizationStatus.value = ["pending", "confirmed"].includes(value) ? value : "pending";
+  }
+  syncInventoryAuthorizationState();
+}
+
 function getInventoryCushionOption() {
   const selected = inventoryForm.querySelector('input[name="cushionOption"]:checked');
   return selected ? selected.value : "none";
@@ -190,6 +215,79 @@ function getInventoryCushionOption() {
 
 function getCushionLabel(value) {
   return CUSHION_OPTIONS.get(value) || "No usa";
+}
+
+function getCategoryLabel(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return INVENTORY_CATEGORY_LABELS.get(normalized) || value || "Sin categoría";
+}
+
+function getAuthorizationStatusLabel(value) {
+  return AUTHORIZATION_STATUS_LABELS.get(String(value || "").trim()) || "No requiere";
+}
+
+function getAuthorizationOwnerLabel(username) {
+  return AUTHORIZATION_OWNER_LABELS.get(String(username || "").trim().toLowerCase()) || "Sin usuario";
+}
+
+function canAuthorizeItem(item) {
+  if (!currentUser || !item || !item.authorizationRequired) {
+    return false;
+  }
+  if (currentUser.role === "admin") {
+    return true;
+  }
+  const ownerUsername = String(item.authorizationOwnerUsername || "").trim().toLowerCase();
+  return ownerUsername && currentUser.username === ownerUsername;
+}
+
+function renderInventoryCategorySelect(selectedValue = "") {
+  if (!inventoryCategorySelectEl) {
+    return;
+  }
+
+  const rawSelected = String(selectedValue || "").trim();
+  const matchedCategory = INVENTORY_CATEGORIES.find(
+    (category) => category.toLowerCase() === rawSelected.toLowerCase()
+  );
+  const normalizedSelected = matchedCategory || rawSelected;
+  inventoryCategorySelectEl.innerHTML = [
+    '<option value="" disabled>Selecciona una categoría</option>',
+    ...INVENTORY_CATEGORIES.map((category) => `<option value="${category}">${category}</option>`),
+    ...(!normalizedSelected || INVENTORY_CATEGORIES.includes(normalizedSelected)
+      ? []
+      : [ `<option value="${normalizedSelected}">${escapeHtml(normalizedSelected)}</option>` ])
+  ].join("");
+  inventoryCategorySelectEl.value = normalizedSelected && inventoryCategorySelectEl.querySelector(`option[value="${CSS.escape(normalizedSelected)}"]`)
+    ? normalizedSelected
+    : "";
+}
+
+function renderAuthorizationOwnerSelect(selectedValue = "") {
+  if (!inventoryAuthorizationOwnerSelectEl) {
+    return;
+  }
+
+  const normalizedSelected = String(selectedValue || "").trim().toLowerCase();
+  inventoryAuthorizationOwnerSelectEl.innerHTML = AUTHORIZATION_OWNER_OPTIONS.map(
+    (option) => `<option value="${option.value}">${option.label}</option>`
+  ).join("");
+  inventoryAuthorizationOwnerSelectEl.value = AUTHORIZATION_OWNER_OPTIONS.some((option) => option.value === normalizedSelected)
+    ? normalizedSelected
+    : "";
+}
+
+function syncInventoryAuthorizationState() {
+  const required = Boolean(inventoryForm.elements.authorizationRequired && inventoryForm.elements.authorizationRequired.checked);
+  if (inventoryAuthorizationOwnerSelectEl) {
+    inventoryAuthorizationOwnerSelectEl.disabled = !required;
+  }
+  if (inventoryForm.elements.authorizationStatus) {
+    inventoryForm.elements.authorizationStatus.disabled = !required;
+    if (!required) {
+      inventoryForm.elements.authorizationStatus.value = "pending";
+    }
+  }
 }
 
 function fileToDataUrl(file) {
@@ -300,9 +398,13 @@ function resetInventoryForm() {
   inventoryModalSubtitleEl.textContent = "";
   inventorySaveBtn.textContent = "Guardar cambios";
   setInventoryCushionOption("none");
+  setInventoryAuthorizationRequired(false);
+  setInventoryAuthorizationStatus("pending");
   inventoryImageDropzoneEl.classList.remove("drag-over");
   setInventoryPreview("", "");
   renderInventoryWarehouseSelect();
+  renderInventoryCategorySelect();
+  renderAuthorizationOwnerSelect();
   setInventoryModalOpen(false);
 }
 
@@ -315,7 +417,10 @@ function fillInventoryForm(item) {
   inventorySaveBtn.textContent = "Guardar cambios";
   inventoryForm.elements.id.value = item.id;
   inventoryForm.elements.name.value = item.name || "";
-  inventoryForm.elements.category.value = item.category || "";
+  renderInventoryCategorySelect(item.category || "");
+  if (inventoryCategorySelectEl) {
+    inventoryCategorySelectEl.value = item.category || "";
+  }
   inventoryForm.elements.size.value = item.size || "";
   inventoryForm.elements.stockTotal.value = String(item.stockTotal ?? 0);
   inventoryForm.elements.unitPriceCLP.value = String(item.unitPriceCLP ?? 0);
@@ -323,6 +428,12 @@ function fillInventoryForm(item) {
   inventoryForm.elements.properties.value = Array.isArray(item.properties) ? item.properties.join("\n") : "";
   inventoryForm.elements.imageRef.value = item.imageRef || "";
   setInventoryCushionOption(item.cushionOption || "none");
+  setInventoryAuthorizationRequired(Boolean(item.authorizationRequired));
+  renderAuthorizationOwnerSelect(item.authorizationOwnerUsername || "");
+  if (inventoryAuthorizationOwnerSelectEl) {
+    inventoryAuthorizationOwnerSelectEl.value = item.authorizationOwnerUsername || "";
+  }
+  setInventoryAuthorizationStatus(item.authorizationStatus || "pending");
   inventoryFormStatus.textContent = "";
   inventoryFormStatus.classList.remove("error");
   setInventoryPreview(item.imageUrl || item.imageRef || "", `${item.name} ${item.size}`);
@@ -343,7 +454,7 @@ function openNewInventoryEditor() {
   inventorySaveBtn.textContent = "Crear producto";
   inventoryForm.elements.id.value = "";
   inventoryForm.elements.name.value = "";
-  inventoryForm.elements.category.value = "";
+  renderInventoryCategorySelect("");
   inventoryForm.elements.size.value = "";
   inventoryForm.elements.stockTotal.value = "0";
   inventoryForm.elements.unitPriceCLP.value = "0";
@@ -351,6 +462,9 @@ function openNewInventoryEditor() {
   inventoryForm.elements.properties.value = "";
   inventoryForm.elements.imageRef.value = "";
   setInventoryCushionOption("none");
+  setInventoryAuthorizationRequired(false);
+  renderAuthorizationOwnerSelect("");
+  setInventoryAuthorizationStatus("pending");
   inventoryFormStatus.textContent = "";
   inventoryFormStatus.classList.remove("error");
   renderInventoryWarehouseSelect();
@@ -380,9 +494,12 @@ function closeInventoryEditor(message = "") {
 function fillFormFromReservation(reservation) {
   form.elements.customerName.value = reservation.customerName || "";
   form.elements.startDate.value = reservation.startDate || "";
-  form.elements.endDate.value = reservation.endDate || "";
+  form.elements.endDate.value = reservation.endDate || reservation.startDate || "";
   form.elements.status.value = reservation.status || "confirmed";
   form.elements.warehouseId.value = reservation.warehouseId || "";
+  if (eventDateInputEl) {
+    eventDateInputEl.value = reservation.startDate || "";
+  }
   if (eventLocationSelectEl) {
     eventLocationSelectEl.value = reservation.eventLocation || "";
   }
@@ -403,7 +520,13 @@ function fillFormFromReservation(reservation) {
 function resetFormForCreateMode() {
   form.reset();
   stockDateEl.value = todayISO;
-  warehouseSelectEl.value = "";
+  form.elements.startDate.value = "";
+  form.elements.endDate.value = "";
+  form.elements.status.value = "confirmed";
+  form.elements.warehouseId.value = "";
+  if (eventDateInputEl) {
+    eventDateInputEl.value = todayISO;
+  }
   if (eventLocationSelectEl) {
     eventLocationSelectEl.value = "";
   }
@@ -431,8 +554,6 @@ function clearAppData() {
     itemRowsEl.innerHTML = "";
   }
   formStatus.textContent = "";
-  warehouseAlertEl.textContent = "";
-  warehouseAlertEl.classList.add("empty");
   resetInventoryForm();
 }
 
@@ -495,14 +616,7 @@ async function api(path, options = {}) {
 }
 
 function renderWarehouseSelect() {
-  const options = [
-    '<option value="">Sin bodega específica</option>',
-    ...warehouses.map(
-      (warehouse) =>
-        `<option value="${warehouse.id}">${warehouse.name} · ${warehouse.location}</option>`
-    )
-  ];
-  warehouseSelectEl.innerHTML = options.join("");
+  return;
 }
 
 function renderItemRows() {
@@ -543,12 +657,14 @@ function renderCatalog() {
         ${currentUser && currentUser.role === "admin" ? '<span class="admin-tag">Admin</span>' : ""}
         <strong>${item.name} ${item.size}</strong>
         <div class="card-meta">
-          <div>Categoría: ${item.category}</div>
+          <div>Categoría: ${escapeHtml(getCategoryLabel(item.category))}</div>
           <div>Bodega: ${item.warehouseName || getWarehouseLabel(item.warehouseId)}</div>
           <div>Stock total: ${item.stockTotal}</div>
           <div>Valor unitario: ${fmtCLP(item.unitPriceCLP)}</div>
           <div>Propiedades: ${item.properties.join(", ")}</div>
           ${String(item.category || "").toLowerCase().includes("silla") ? `<div>Cojín: ${getCushionLabel(item.cushionOption)}</div>` : ""}
+          <div>Autorización: <span class="approval-pill ${escapeHtml(item.authorizationStatus || "not_required")}">${escapeHtml(getAuthorizationStatusLabel(item.authorizationStatus))}</span></div>
+          ${item.authorizationRequired ? `<div>Autoriza: ${escapeHtml(getAuthorizationOwnerLabel(item.authorizationOwnerUsername))}</div>` : ""}
         </div>
         ${
           currentUser && currentUser.role === "admin"
@@ -642,7 +758,10 @@ async function loadReservations() {
       const itemLines = r.items
         .map((it) => {
           const item = items.find((x) => x.id === it.itemId);
-          return `${item ? item.name : it.itemId} x${it.quantity}`;
+          const authLabel = it.authorizationRequired
+            ? getAuthorizationStatusLabel(it.authorizationStatus)
+            : "No requiere";
+          return `${item ? item.name : it.itemId} x${it.quantity} (${authLabel})`;
         })
         .join("; ");
 
@@ -808,9 +927,35 @@ function renderReservationDetail() {
     .map((it) => {
       const item = items.find((x) => x.id === it.itemId);
       if (!item) {
-        return `<li>${escapeHtml(it.itemId)} x${it.quantity}</li>`;
+        const fallbackStatus = getAuthorizationStatusLabel(it.authorizationStatus || "not_required");
+        return `<li>
+          <div class="reservation-item-line">
+            <span>${escapeHtml(it.itemId)} x${it.quantity}</span>
+            <span class="approval-pill ${escapeHtml(it.authorizationStatus || "not_required")}">${escapeHtml(fallbackStatus)}</span>
+          </div>
+        </li>`;
       }
-      return `<li>${escapeHtml(item.name)} ${escapeHtml(item.size)} x${it.quantity}</li>`;
+      const status = it.authorizationRequired ? it.authorizationStatus || "pending" : "not_required";
+      const statusLabel = getAuthorizationStatusLabel(status);
+      const ownerLabel = it.authorizationRequired ? getAuthorizationOwnerLabel(it.authorizationOwnerUsername) : "";
+      return `<li>
+        <div class="reservation-item-line">
+          <span>${escapeHtml(item.name)} ${escapeHtml(item.size)} x${it.quantity}</span>
+          <span class="approval-pill ${escapeHtml(status)}">${escapeHtml(statusLabel)}</span>
+        </div>
+        <div class="reservation-item-meta">
+          <span>${escapeHtml(getWarehouseLabel(item.warehouseId))}</span>
+          ${it.authorizationRequired ? `<span>Autoriza: ${escapeHtml(ownerLabel)}</span>` : ""}
+        </div>
+        ${
+          it.authorizationRequired && canAuthorizeItem(it)
+            ? `<div class="reservation-item-actions">
+                 <button type="button" class="secondary item-auth-btn" data-res-id="${escapeHtml(reservation.id)}" data-item-id="${escapeHtml(it.itemId)}" data-auth-status="confirmed">Confirmar</button>
+                 <button type="button" class="secondary item-auth-btn" data-res-id="${escapeHtml(reservation.id)}" data-item-id="${escapeHtml(it.itemId)}" data-auth-status="pending">Dejar pendiente</button>
+               </div>`
+            : ""
+        }
+      </li>`;
     })
     .join("");
 
@@ -894,6 +1039,20 @@ function renderReservationDetail() {
       renderReservationDetail();
     });
   }
+
+  reservationDetailEl.querySelectorAll(".item-auth-btn").forEach((button) => {
+    button.addEventListener("click", async (event) => {
+      const resId = event.currentTarget.getAttribute("data-res-id");
+      const itemId = event.currentTarget.getAttribute("data-item-id");
+      const authorizationStatus = event.currentTarget.getAttribute("data-auth-status");
+      await api(`/api/reservations/${resId}/items/${itemId}/authorization`, {
+        method: "PATCH",
+        body: JSON.stringify({ authorizationStatus })
+      });
+      await loadReservations();
+      renderReservationDetail();
+    });
+  });
 }
 
 function openReservation(reservationId, options = {}) {
@@ -944,7 +1103,8 @@ function buildReservationPrintSheet(reservation) {
     .map((it) => {
       const item = items.find((x) => x.id === it.itemId);
       const label = item ? `${item.name} ${item.size}` : it.itemId;
-      return `<li><span>${escapeHtml(label)}</span><span>x${it.quantity}</span></li>`;
+      const status = it.authorizationRequired ? it.authorizationStatus || "pending" : "not_required";
+      return `<li><span>${escapeHtml(label)}</span><span>x${it.quantity} · ${escapeHtml(getAuthorizationStatusLabel(status))}</span></li>`;
     })
     .join("");
   const clientName = escapeHtml(reservation.customerName || "Sin nombre");
@@ -1038,6 +1198,7 @@ form.addEventListener("submit", async (event) => {
 
   const data = new FormData(form);
   const selectedItems = getCatalogQuantities();
+  const eventDate = String(data.get("eventDate") || "").trim();
 
   try {
     const isEditing = Boolean(editingReservationId);
@@ -1047,8 +1208,8 @@ form.addEventListener("submit", async (event) => {
       method,
       body: JSON.stringify({
         customerName: data.get("customerName"),
-        startDate: data.get("startDate"),
-        endDate: data.get("endDate"),
+        startDate: eventDate,
+        endDate: eventDate,
         eventLocation: data.get("eventLocation"),
         banquetero: data.get("banquetero"),
         notes: data.get("notes"),
@@ -1084,7 +1245,10 @@ inventoryForm.addEventListener("submit", async (event) => {
       warehouseId: data.get("warehouseId"),
       properties: data.get("properties"),
       imageRef: data.get("imageRef"),
-      cushionOption: getInventoryCushionOption()
+      cushionOption: getInventoryCushionOption(),
+      authorizationRequired: Boolean(data.get("authorizationRequired")),
+      authorizationOwnerUsername: data.get("authorizationOwnerUsername"),
+      authorizationStatus: data.get("authorizationStatus")
     };
 
     if (inventoryMode === "create") {
@@ -1120,7 +1284,21 @@ inventoryForm.addEventListener("submit", async (event) => {
 });
 
 stockDateEl.addEventListener("change", loadStock);
-warehouseSelectEl.addEventListener("change", updateWarehouseAlert);
+if (inventoryForm.elements.authorizationRequired) {
+  inventoryForm.elements.authorizationRequired.addEventListener("change", () => {
+    syncInventoryAuthorizationState();
+  });
+}
+if (inventoryAuthorizationOwnerSelectEl) {
+  inventoryAuthorizationOwnerSelectEl.addEventListener("change", () => {
+    inventoryForm.elements.authorizationOwnerUsername.value = inventoryAuthorizationOwnerSelectEl.value;
+  });
+}
+if (inventoryForm.elements.authorizationStatus) {
+  inventoryForm.elements.authorizationStatus.addEventListener("change", () => {
+    syncInventoryAuthorizationState();
+  });
+}
 if (addInventoryBtnEl) {
   addInventoryBtnEl.addEventListener("click", () => {
     openNewInventoryEditor();
@@ -1254,7 +1432,8 @@ logoutBtnEl.addEventListener("click", async () => {
 async function loadInitialData() {
   warehouses = await api("/api/warehouses");
   items = await api("/api/items");
-  renderWarehouseSelect();
+  renderInventoryCategorySelect();
+  renderAuthorizationOwnerSelect();
   renderInventoryWarehouseSelect();
   if (editingInventoryId) {
     const selectedItem = items.find((item) => item.id === editingInventoryId);

@@ -1,4 +1,4 @@
-# App arriendo platos/plaque (MVP local)
+# AC Arriendos (MVP local)
 
 App local para gestionar reservas por fecha, controlar stock diario y visualizar catálogo de arriendo.
 
@@ -9,7 +9,7 @@ App local para gestionar reservas por fecha, controlar stock diario y visualizar
 - Creación de reservas con validación de stock por rango de fechas (evita sobreventa).
 - Estados de reserva (`pending`, `confirmed`, `delivered`, `returned`, `cancelled`) con actualización en vivo.
 - Persistencia en disco en archivos JSON.
-- Asignación de productos a bodegas y flujo de aprobación para reservas que pidan una bodega específica.
+- Asignación de bodega por producto y estado de autorización por ítem, visible dentro de la reserva.
 
 ## Estructura
 
@@ -32,16 +32,16 @@ Abrir en navegador: `http://localhost:4780`
 ## Flujo operativo
 
 1. Abrir la app local.
-2. Ingresar reserva con fecha retiro/devolución e ítems.
-3. La API valida stock disponible en todo el rango.
+2. Ingresar reserva con fecha de evento e ítems.
+3. La API valida stock disponible en el día o rango guardado.
 4. Si hay stock, guarda reserva y actualiza calendario + stock diario.
 5. Si falta stock, rechaza la reserva indicando disponible vs solicitado.
 
-## Bodegas y aprobaciones
+## Bodegas y autorización
 
 - Cada producto tiene una bodega asignada en `data/items.json` y las opciones vigentes son `Ppal Izco`, `JP`, `Amelita` y `Mamá`.
-- La reserva puede pedir una `bodega solicitada`.
-- Si la reserva pide bodega específica, queda en `approvalStatus = pending` y el admin puede aprobar o rechazar desde el detalle.
+- Cada producto también puede marcarse como `requiere autorización`, asignar un usuario autorizado y dejar su estado en `pending` o `confirmed`.
+- El estado de autorización se copia dentro de la reserva para que cada ítem muestre su propio estado.
 
 ## Cargar/editar ítems
 
@@ -50,14 +50,26 @@ Tambien puedes abrir la ficha haciendo click sobre la tarjeta del producto o usa
 
 Eso abre un modal para cambiar o crear:
 - nombre
-- categoría
+- categoría guiada
 - medida
 - stock total
 - valor unitario
 - bodega obligatoria entre `Ppal Izco`, `JP`, `Amelita` y `Mamá`
+- requiere autorización
+- usuario que autoriza
+- estado de autorización (`pending` o `confirmed`)
 - propiedades
 - cojín asociado para sillas (`No usa`, `Blanco`, `Negro`)
 - imagen de referencia
+
+Las categorías vigentes del catálogo son:
+
+- `Sillas`
+- `Platos`
+- `Lounge`
+- `Manteleria`
+- `Bares`
+- `Plaqué`
 
 Para fotos, el modal acepta:
 - arrastrar y soltar una imagen sobre la caja de carga
@@ -79,6 +91,10 @@ Formato por ítem:
   "size": "Medida",
   "stockTotal": 10,
   "unitPriceCLP": 1000,
+  "warehouseId": "ppal-izco",
+  "authorizationRequired": false,
+  "authorizationStatus": "not_required",
+  "authorizationOwnerUsername": "",
   "cushionOption": "none",
   "properties": ["prop1", "prop2"],
   "imageRef": "media://inbound/..."

@@ -92,6 +92,42 @@ function seedFileIfMissing(targetPath, sourcePath, fallbackValue) {
   writeJson(targetPath, fallbackValue);
 }
 
+function normalizeInventorySignature(item) {
+  return JSON.stringify({
+    name: String(item?.name || "").trim(),
+    category: String(item?.category || "").trim(),
+    size: String(item?.size || "").trim(),
+    stockTotal: Number(item?.stockTotal || 0),
+    unitPriceCLP: Number(item?.unitPriceCLP || 0),
+    warehouseId: String(item?.warehouseId || "").trim(),
+    authorizationRequired: Boolean(item?.authorizationRequired),
+    authorizationStatus: String(item?.authorizationStatus || "").trim(),
+    authorizationOwnerUsername: String(item?.authorizationOwnerUsername || "").trim().toLowerCase(),
+    cushionOption: String(item?.cushionOption || "none").trim().toLowerCase(),
+    imageRef: String(item?.imageRef || "").trim(),
+    properties: Array.isArray(item?.properties) ? item.properties.map((value) => String(value || "").trim()) : []
+  });
+}
+
+function dedupeInventoryItems(items) {
+  if (!Array.isArray(items) || items.length < 2) {
+    return Array.isArray(items) ? items : [];
+  }
+
+  const seen = new Map();
+  const deduped = [];
+  for (const item of items) {
+    const signature = normalizeInventorySignature(item);
+    if (seen.has(signature)) {
+      continue;
+    }
+    seen.set(signature, true);
+    deduped.push(item);
+  }
+
+  return deduped;
+}
+
 function bootstrapStorage() {
   ensureDir(DATA_DIR);
   ensureDir(INBOUND_MEDIA_DIR);
@@ -99,6 +135,12 @@ function bootstrapStorage() {
   seedFileIfMissing(ITEMS_FILE, path.join(SOURCE_DATA_DIR, "items.json"), []);
   seedFileIfMissing(RESERVATIONS_FILE, path.join(SOURCE_DATA_DIR, "reservations.json"), []);
   seedFileIfMissing(WAREHOUSES_FILE, path.join(SOURCE_DATA_DIR, "warehouses.json"), DEFAULT_WAREHOUSES);
+
+  const items = readJsonOrFallback(ITEMS_FILE, []);
+  const dedupedItems = dedupeInventoryItems(items);
+  if (dedupedItems.length !== items.length) {
+    writeJson(ITEMS_FILE, dedupedItems);
+  }
 }
 
 function ensureInboundMediaDir() {
@@ -214,6 +256,10 @@ function formatCurrencyCLP(value) {
     currency: "CLP",
     maximumFractionDigits: 0
   }).format(value);
+}
+
+function getUserByUsername(username) {
+  return AUTH_USER_MAP.get(String(username || "").trim().toLowerCase()) || null;
 }
 
 function mediaRefToUrl(imageRef) {
@@ -368,6 +414,32 @@ function normalizeInventoryProperties(rawValue) {
     .filter(Boolean);
 }
 
+function normalizeBoolean(rawValue) {
+  const normalized = String(rawValue || "").trim().toLowerCase();
+  return ["true", "1", "on", "yes", "si"].includes(normalized);
+}
+
+function normalizeAuthorizationOwnerUsername(rawValue) {
+  const normalized = String(rawValue || "").trim().toLowerCase();
+  return normalized || "";
+}
+
+function normalizeAuthorizationStatus(rawValue, authorizationRequired) {
+  const normalized = String(rawValue || "").trim().toLowerCase();
+  if (!authorizationRequired) {
+    return "not_required";
+  }
+  if (["pending", "confirmed"].includes(normalized)) {
+    return normalized;
+  }
+  return "pending";
+}
+
+function getAuthorizationOwnerLabel(username) {
+  const user = getUserByUsername(username);
+  return user ? user.displayName : "Sin usuario";
+}
+
 function normalizeCushionOption(rawValue, category) {
   const allowed = new Set(["none", "white", "black"]);
   const normalizedCategory = String(category || "").toLowerCase();
@@ -391,6 +463,9 @@ function validateInventoryItemPayload(payload) {
   const imageRef = String(payload.imageRef || "").trim();
   const warehouseId = resolveWarehouseId(payload.warehouseId);
   const cushionOption = normalizeCushionOption(payload.cushionOption, category);
+  const authorizationRequired = normalizeBoolean(payload.authorizationRequired);
+  const authorizationOwnerUsername = normalizeAuthorizationOwnerUsername(payload.authorizationOwnerUsername);
+  const authorizationStatus = normalizeAuthorizationStatus(payload.authorizationStatus, authorizationRequired);
 
   const stockTotal = Number(payload.stockTotal);
   const unitPriceCLP = Number(payload.unitPriceCLP);
@@ -416,6 +491,12 @@ function validateInventoryItemPayload(payload) {
   if (cushionOption === null) {
     return { error: "cushionOption invalido" };
   }
+  if (authorizationRequired && !authorizationOwnerUsername) {
+    return { error: "authorizationOwnerUsername es obligatorio cuando requiere autorizacion" };
+  }
+  if (authorizationOwnerUsername && !getUserByUsername(authorizationOwnerUsername)) {
+    return { error: `authorizationOwnerUsername no existe: ${authorizationOwnerUsername}` };
+  }
 
   return {
     name,
@@ -425,8 +506,25 @@ function validateInventoryItemPayload(payload) {
     unitPriceCLP,
     warehouseId,
     cushionOption,
+    authorizationRequired,
+    authorizationStatus,
+    authorizationOwnerUsername: authorizationRequired ? authorizationOwnerUsername : "",
     imageRef: imageRef || "",
     properties: normalizeInventoryProperties(payload.properties)
+  };
+}
+
+function buildReservationItemSnapshot(item, quantity) {
+  const authorizationRequired = Boolean(item.authorizationRequired);
+  return {
+    itemId: item.id,
+    quantity,
+    authorizationRequired,
+    authorizationStatus: authorizationRequired ? item.authorizationStatus || "pending" : "not_required",
+    authorizationOwnerUsername: authorizationRequired ? item.authorizationOwnerUsername || "" : "",
+    authorizationOwnerDisplayName: authorizationRequired
+      ? getAuthorizationOwnerLabel(item.authorizationOwnerUsername)
+      : ""
   };
 }
 
@@ -503,11 +601,17 @@ app.get("/api/items", (req, res) => {
 
   const payload = items.map((item) => {
     const warehouse = warehouseMap.get(item.warehouseId) || null;
+    const authorizationRequired = Boolean(item.authorizationRequired);
+    const authorizationOwnerUsername = authorizationRequired ? String(item.authorizationOwnerUsername || "").trim().toLowerCase() : "";
     const out = {
       ...item,
       warehouseName: warehouse ? warehouse.name : "Sin bodega",
       imageUrl: mediaRefToUrl(item.imageRef),
-      unitPriceLabel: formatCurrencyCLP(item.unitPriceCLP)
+      unitPriceLabel: formatCurrencyCLP(item.unitPriceCLP),
+      authorizationRequired,
+      authorizationStatus: authorizationRequired ? item.authorizationStatus || "pending" : "not_required",
+      authorizationOwnerUsername,
+      authorizationOwnerDisplayName: authorizationRequired ? getAuthorizationOwnerLabel(authorizationOwnerUsername) : ""
     };
     if (reserved) {
       out.reservedInRange = reserved[item.id] || 0;
@@ -578,6 +682,9 @@ app.put("/api/items/:id", (req, res) => {
   item.unitPriceCLP = parsed.unitPriceCLP;
   item.warehouseId = parsed.warehouseId;
   item.cushionOption = parsed.cushionOption;
+  item.authorizationRequired = parsed.authorizationRequired;
+  item.authorizationStatus = parsed.authorizationStatus;
+  item.authorizationOwnerUsername = parsed.authorizationOwnerUsername;
   item.imageRef = parsed.imageRef;
   item.properties = parsed.properties;
   item.updatedAt = new Date().toISOString();
@@ -762,7 +869,7 @@ app.post("/api/reservations", (req, res) => {
     approvalReason,
     approvalUpdatedAt: null,
     approvalUpdatedBy: null,
-    items: normalizedItems,
+    items: normalizedItems.map((it) => buildReservationItemSnapshot(itemMap.get(it.itemId), it.quantity)),
     totalCLP,
     totalLabel: formatCurrencyCLP(totalCLP)
   };
@@ -837,7 +944,7 @@ app.put("/api/reservations/:id", (req, res) => {
   found.warehouseId = warehouseId;
   found.approvalStatus = approvalStatus;
   found.approvalReason = approvalReason;
-  found.items = normalizedItems;
+  found.items = normalizedItems.map((it) => buildReservationItemSnapshot(itemMap.get(it.itemId), it.quantity));
   found.totalCLP = totalCLP;
   found.totalLabel = formatCurrencyCLP(totalCLP);
   found.updatedAt = new Date().toISOString();
@@ -866,6 +973,42 @@ app.patch("/api/reservations/:id/approval", (req, res) => {
   found.approvalStatus = approvalStatus;
   found.approvalUpdatedAt = new Date().toISOString();
   found.approvalUpdatedBy = req.user.username;
+  writeJson(RESERVATIONS_FILE, reservations);
+
+  return res.json(found);
+});
+
+app.patch("/api/reservations/:id/items/:itemId/authorization", (req, res) => {
+  const reservationId = String(req.params.id);
+  const itemId = String(req.params.itemId);
+  const requestedStatus = String(req.body.authorizationStatus || "").trim().toLowerCase();
+
+  if (!["pending", "confirmed"].includes(requestedStatus)) {
+    return res.status(400).json({ error: "authorizationStatus invalido" });
+  }
+
+  const reservations = readJson(RESERVATIONS_FILE);
+  const found = reservations.find((r) => r.id === reservationId);
+  if (!found) {
+    return res.status(404).json({ error: "Reserva no encontrada" });
+  }
+
+  const foundItem = (found.items || []).find((it) => it.itemId === itemId);
+  if (!foundItem) {
+    return res.status(404).json({ error: "Item no encontrado en la reserva" });
+  }
+  if (!foundItem.authorizationRequired) {
+    return res.status(400).json({ error: "Este item no requiere autorizacion" });
+  }
+
+  const ownerUsername = String(foundItem.authorizationOwnerUsername || "").trim().toLowerCase();
+  if (req.user.role !== "admin" && req.user.username !== ownerUsername) {
+    return res.status(403).json({ error: "Solo el usuario autorizado o admin puede cambiar este estado" });
+  }
+
+  foundItem.authorizationStatus = requestedStatus;
+  foundItem.authorizationUpdatedAt = new Date().toISOString();
+  foundItem.authorizationUpdatedBy = req.user.username;
   writeJson(RESERVATIONS_FILE, reservations);
 
   return res.json(found);
