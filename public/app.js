@@ -15,6 +15,7 @@ const categoryProductsViewEl = document.getElementById("category-products-view")
 const categoryProductsTitleEl = document.getElementById("category-products-title");
 const categoryProductsEl = document.getElementById("category-products");
 const backToCategoriesBtnEl = document.getElementById("back-to-categories-btn");
+const catalogSaveBtnEl = document.getElementById("catalog-save-btn");
 const productDetailEl = document.getElementById("product-detail");
 const closeProductDetailBtnEl = document.getElementById("close-product-detail-btn");
 const calendarGridEl = document.getElementById("calendar-grid");
@@ -65,6 +66,8 @@ let editingInventoryImageUrl = "";
 let activeCategory = "";
 let activeProductId = "";
 let activeProductStockDate = todayISO;
+const catalogStandaloneMode = new URLSearchParams(window.location.search).get("standalone") === "1";
+const CATALOG_DRAFT_STORAGE_KEY = "catalog_quantity_draft_v1";
 const catalogQuantityByItemId = new Map();
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const ACTIVE_STOCK_STATUSES = new Set(["pending", "confirmed", "delivered"]);
@@ -187,10 +190,12 @@ function setCatalogQuantity(itemId, quantity) {
   } else {
     catalogQuantityByItemId.delete(itemId);
   }
+  persistCatalogDraft();
 }
 
 function clearCatalogQuantities() {
   catalogQuantityByItemId.clear();
+  persistCatalogDraft();
 }
 
 function hydrateCatalogQuantitiesFromReservation(reservationItems = []) {
@@ -200,6 +205,70 @@ function hydrateCatalogQuantitiesFromReservation(reservationItems = []) {
     if (quantity > 0) {
       catalogQuantityByItemId.set(entry.itemId, quantity);
     }
+  }
+  persistCatalogDraft();
+}
+
+function loadCatalogDraft() {
+  if (typeof window.localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CATALOG_DRAFT_STORAGE_KEY);
+    if (!raw) {
+      return;
+    }
+    const payload = JSON.parse(raw);
+    clearCatalogQuantities();
+    if (!payload || typeof payload !== "object") {
+      return;
+    }
+    for (const [itemId, quantity] of Object.entries(payload)) {
+      const parsed = Number.parseInt(String(quantity || "0"), 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        catalogQuantityByItemId.set(itemId, parsed);
+      }
+    }
+    persistCatalogDraft();
+  } catch (_error) {
+    // Ignore malformed drafts.
+  }
+}
+
+function persistCatalogDraft() {
+  if (typeof window.localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    const payload = Object.fromEntries(catalogQuantityByItemId.entries());
+    if (Object.keys(payload).length === 0) {
+      window.localStorage.removeItem(CATALOG_DRAFT_STORAGE_KEY);
+      return;
+    }
+    window.localStorage.setItem(CATALOG_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+  } catch (_error) {
+    // Ignore storage failures.
+  }
+}
+
+function saveCatalogDraftAndClose() {
+  persistCatalogDraft();
+  if (window.opener && !window.opener.closed) {
+    try {
+      window.opener.focus();
+    } catch (_error) {
+      // No-op.
+    }
+  }
+  try {
+    window.close();
+  } catch (_error) {
+    // No-op.
+  }
+  if (!window.closed) {
+    window.location.assign(window.location.pathname);
   }
 }
 
@@ -577,7 +646,8 @@ function fillFormFromReservation(reservation) {
   }
 }
 
-function resetFormForCreateMode() {
+function resetFormForCreateMode(options = {}) {
+  const { clearCatalog = false } = options;
   form.reset();
   form.elements.startDate.value = "";
   form.elements.endDate.value = "";
@@ -592,7 +662,9 @@ function resetFormForCreateMode() {
   if (banqueteroSelectEl) {
     banqueteroSelectEl.value = "";
   }
-  clearCatalogQuantities();
+  if (clearCatalog) {
+    clearCatalogQuantities();
+  }
   renderItemRows();
   setEditMode(null);
   updateWarehouseAlert();
@@ -666,6 +738,7 @@ function showApp() {
   appLayoutEl.classList.remove("hidden");
   loginStatusEl.textContent = "";
   loginStatusEl.classList.remove("error");
+  document.body.classList.toggle("catalog-standalone", catalogStandaloneMode);
   setAuthBar();
   setInventoryModalOpen(false);
 }
@@ -747,12 +820,15 @@ function buildCatalogProductUrl(item) {
   return url.toString();
 }
 
-function buildCatalogCategoryUrl(category) {
+function buildCatalogCategoryUrl(category, options = {}) {
   const url = new URL(window.location.href);
   url.search = "";
   const normalizedCategory = normalizeInventoryCategory(category);
   if (normalizedCategory) {
     url.searchParams.set("category", normalizedCategory);
+  }
+  if (options.standalone) {
+    url.searchParams.set("standalone", "1");
   }
   return url.toString();
 }
@@ -768,7 +844,10 @@ function setCatalogVisibility({ categoryVisible = true, productsVisible = false,
     productDetailEl.classList.toggle("hidden", !detailVisible);
   }
   if (backToCategoriesBtnEl) {
-    backToCategoriesBtnEl.classList.toggle("hidden", !productsVisible && !detailVisible);
+    backToCategoriesBtnEl.classList.toggle("hidden", catalogStandaloneMode || (!productsVisible && !detailVisible));
+  }
+  if (catalogSaveBtnEl) {
+    catalogSaveBtnEl.classList.toggle("hidden", !catalogStandaloneMode || !productsVisible);
   }
   if (closeProductDetailBtnEl) {
     closeProductDetailBtnEl.classList.toggle("hidden", !detailVisible);
@@ -800,8 +879,8 @@ function renderHomeCatalog() {
   categoryGridEl.querySelectorAll(".home-category-card").forEach((button) => {
     button.addEventListener("click", () => {
       const category = button.getAttribute("data-category");
-      const categoryUrl = buildCatalogCategoryUrl(category);
-      const opened = window.open(categoryUrl, "_blank", "noopener,noreferrer");
+      const categoryUrl = buildCatalogCategoryUrl(category, { standalone: true });
+      const opened = window.open(categoryUrl, "_blank");
       if (!opened) {
         window.location.assign(categoryUrl);
       }
@@ -1614,6 +1693,11 @@ if (backToCategoriesBtnEl) {
     void applyCatalogRouteFromLocation();
   });
 }
+if (catalogSaveBtnEl) {
+  catalogSaveBtnEl.addEventListener("click", () => {
+    saveCatalogDraftAndClose();
+  });
+}
 if (closeProductDetailBtnEl) {
   closeProductDetailBtnEl.addEventListener("click", () => {
     closeProductDetail();
@@ -1755,6 +1839,7 @@ logoutBtnEl.addEventListener("click", async () => {
 async function loadInitialData() {
   warehouses = await api("/api/warehouses");
   items = await api("/api/items");
+  loadCatalogDraft();
   renderInventoryCategorySelect();
   renderAuthorizationOwnerSelect();
   renderInventoryWarehouseSelect();
@@ -1765,7 +1850,7 @@ async function loadInitialData() {
       inventoryForm.elements.imageRef.value = selectedItem.imageRef || "";
     }
   }
-  resetFormForCreateMode();
+  resetFormForCreateMode({ clearCatalog: false });
   activeCategory = "";
   activeProductId = "";
   activeProductStockDate = todayISO;

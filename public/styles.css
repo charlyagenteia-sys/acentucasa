@@ -407,6 +407,24 @@ button:hover {
   gap: 4px;
 }
 
+body.catalog-standalone .reservation-panel,
+body.catalog-standalone .calendar-panel,
+body.catalog-standalone .panel.full {
+  display: none;
+}
+
+body.catalog-standalone .app-top-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body.catalog-standalone .categories-panel {
+  min-height: calc(100vh - 180px);
+}
+
+body.catalog-standalone .catalog-hint {
+  max-width: 54ch;
+}
+
 .category-grid {
   display: grid;
   gap: 12px;
