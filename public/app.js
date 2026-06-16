@@ -1305,8 +1305,12 @@ function renderReservationDetail() {
 
   const printBtn = reservationDetailEl.querySelector(".detail-print-btn");
   printBtn.addEventListener("click", () => {
-    buildReservationPrintSheet(reservation);
-    window.print();
+    openReservationSheet(reservation);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+      });
+    });
   });
 
   const approveBtn = reservationDetailEl.querySelector(".detail-approve-btn");

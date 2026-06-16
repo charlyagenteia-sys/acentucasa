@@ -1053,6 +1053,10 @@ button:hover {
     display: block;
   }
 
+  .print-order.hidden {
+    display: block !important;
+  }
+
   .print-order .modal-backdrop,
   .print-order .modal-header,
   .print-order .print-sheet-actions {
