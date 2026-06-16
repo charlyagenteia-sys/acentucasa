@@ -701,6 +701,27 @@ function getCategoryItems(category) {
   return items.filter((item) => normalizeInventoryCategory(item.category) === normalized);
 }
 
+function buildCatalogProductUrl(item) {
+  const url = new URL(window.location.href);
+  url.search = "";
+  const category = normalizeInventoryCategory(item.category);
+  if (category) {
+    url.searchParams.set("category", category);
+  }
+  url.searchParams.set("product", item.id);
+  return url.toString();
+}
+
+function buildCatalogCategoryUrl(category) {
+  const url = new URL(window.location.href);
+  url.search = "";
+  const normalizedCategory = normalizeInventoryCategory(category);
+  if (normalizedCategory) {
+    url.searchParams.set("category", normalizedCategory);
+  }
+  return url.toString();
+}
+
 function setCatalogVisibility({ categoryVisible = true, productsVisible = false, detailVisible = false } = {}) {
   if (categoryGridEl) {
     categoryGridEl.classList.toggle("hidden", !categoryVisible);
@@ -719,30 +740,37 @@ function setCatalogVisibility({ categoryVisible = true, productsVisible = false,
   }
 }
 
-function renderCategoryBrowser() {
-  const categories = INVENTORY_CATEGORIES.map((category) => {
+function renderHomeCatalog() {
+  if (!categoryGridEl) {
+    return;
+  }
+
+  const cards = INVENTORY_CATEGORIES.map((category) => {
     const categoryItems = getCategoryItems(category);
     const productCount = categoryItems.length;
     const stockTotal = categoryItems.reduce((sum, item) => sum + Number(item.stockTotal || 0), 0);
     return `
-      <button type="button" class="category-card" data-category="${escapeHtml(category)}">
+      <button type="button" class="category-card home-category-card" data-category="${escapeHtml(category)}">
         <span class="category-icon category-${escapeHtml(getCategoryIconSlug(category))}">${escapeHtml(getCategoryIconLabel(category))}</span>
         <span class="category-copy">
           <strong>${escapeHtml(category)}</strong>
           <span>${productCount} productos · stock ${stockTotal}</span>
         </span>
+        <span class="card-cta">Abrir categoría</span>
       </button>
     `;
   }).join("");
 
-  if (categoryGridEl) {
-    categoryGridEl.innerHTML = categories;
-    categoryGridEl.querySelectorAll(".category-card").forEach((button) => {
-      button.addEventListener("click", () => {
-        openCategory(button.getAttribute("data-category"));
-      });
+  categoryGridEl.innerHTML = cards;
+  categoryGridEl.querySelectorAll(".home-category-card").forEach((button) => {
+    button.addEventListener("click", () => {
+      const categoryUrl = buildCatalogCategoryUrl(button.getAttribute("data-category"));
+      const opened = window.open(categoryUrl, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        window.location.href = categoryUrl;
+      }
     });
-  }
+  });
 }
 
 function renderCategoryProducts() {
@@ -752,7 +780,7 @@ function renderCategoryProducts() {
 
   const category = normalizeInventoryCategory(activeCategory);
   const categoryItems = getCategoryItems(category);
-  categoryProductsTitleEl.textContent = `${category} · productos`;
+  categoryProductsTitleEl.textContent = category;
 
   if (categoryItems.length === 0) {
     categoryProductsEl.innerHTML = "<p>No hay productos en esta categoría.</p>";
@@ -762,7 +790,12 @@ function renderCategoryProducts() {
   categoryProductsEl.innerHTML = categoryItems
     .map(
       (item) => `
-        <button type="button" class="product-card" data-item-id="${escapeHtml(item.id)}">
+        <a
+          class="product-card"
+          href="${escapeHtml(buildCatalogProductUrl(item))}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <div class="thumb">
             ${
               item.imageUrl
@@ -774,19 +807,13 @@ function renderCategoryProducts() {
             <strong>${escapeHtml(item.name)}</strong>
             <div class="card-meta">
               <div>${escapeHtml(item.size)}</div>
-              <div class="card-cta">Abrir producto</div>
+              <div class="card-cta">Abrir en pestaña nueva</div>
             </div>
           </div>
-        </button>
+        </a>
       `
     )
     .join("");
-
-  categoryProductsEl.querySelectorAll(".product-card").forEach((button) => {
-    button.addEventListener("click", () => {
-      openProduct(button.getAttribute("data-item-id"));
-    });
-  });
 }
 
 function renderProductDetail() {
@@ -884,7 +911,7 @@ function openCategory(category) {
   activeProductId = "";
   activeProductStockDate = todayISO;
   renderCategoryProducts();
-  setCatalogVisibility({ categoryVisible: true, productsVisible: true, detailVisible: false });
+  setCatalogVisibility({ categoryVisible: false, productsVisible: true, detailVisible: false });
 }
 
 async function openProduct(itemId) {
@@ -902,7 +929,7 @@ async function openProduct(itemId) {
     renderCategoryProducts();
   }
   renderProductDetail();
-  setCatalogVisibility({ categoryVisible: true, productsVisible: true, detailVisible: true });
+  setCatalogVisibility({ categoryVisible: false, productsVisible: true, detailVisible: true });
   await loadProductStock();
 }
 
@@ -910,7 +937,21 @@ function closeProductDetail() {
   activeProductId = "";
   activeProductStockDate = todayISO;
   renderProductDetail();
-  setCatalogVisibility({ categoryVisible: true, productsVisible: true, detailVisible: false });
+  setCatalogVisibility({ categoryVisible: false, productsVisible: true, detailVisible: false });
+}
+
+async function applyCatalogRouteFromLocation() {
+  const params = new URLSearchParams(window.location.search);
+  const productId = String(params.get("product") || "").trim();
+  const category = normalizeInventoryCategory(params.get("category"));
+
+  if (category) {
+    openCategory(category);
+  }
+
+  if (productId) {
+    await openProduct(productId);
+  }
 }
 
 function isPrintSheetOpen() {
@@ -1184,8 +1225,8 @@ function renderReservationDetail() {
     editBtn.addEventListener("click", () => {
       setEditMode(reservation);
       fillFormFromReservation(reservation);
-      if (itemRowsEl) {
-        itemRowsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (formTitleEl) {
+        formTitleEl.scrollIntoView({ behavior: "smooth", block: "start" });
       }
       formStatus.textContent = "Editando reserva abierta.";
       formStatus.classList.remove("error");
@@ -1490,10 +1531,7 @@ if (inventoryCategorySelectEl) {
 }
 if (backToCategoriesBtnEl) {
   backToCategoriesBtnEl.addEventListener("click", () => {
-    activeCategory = "";
-    activeProductId = "";
-    renderCategoryBrowser();
-    setCatalogVisibility({ categoryVisible: true, productsVisible: false, detailVisible: false });
+    window.location.assign(window.location.pathname);
   });
 }
 if (closeProductDetailBtnEl) {
@@ -1648,10 +1686,11 @@ async function loadInitialData() {
   activeCategory = "";
   activeProductId = "";
   activeProductStockDate = todayISO;
-  renderCategoryBrowser();
+  renderHomeCatalog();
   setCatalogVisibility({ categoryVisible: true, productsVisible: false, detailVisible: false });
   await loadReservations();
   await loadCalendar();
+  await applyCatalogRouteFromLocation();
 }
 
 async function init() {

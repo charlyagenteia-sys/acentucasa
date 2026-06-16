@@ -60,6 +60,25 @@ body.modal-open {
   padding: 16px;
 }
 
+.app-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 16px;
+}
+
+.app-top-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.25fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.app-left-column {
+  display: grid;
+  gap: 16px;
+}
+
 .auth-layout {
   grid-template-columns: minmax(280px, 460px);
   justify-content: center;
@@ -355,6 +374,10 @@ button:hover {
   font-size: 0.92rem;
 }
 
+.embedded-catalog-panel {
+  margin: 10px 0 14px;
+}
+
 .section-header {
   display: flex;
   gap: 12px;
@@ -379,10 +402,63 @@ button:hover {
   flex-wrap: wrap;
 }
 
+.categories-panel {
+  display: grid;
+  gap: 4px;
+}
+
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
+}
+
+.category-card.home-category-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.category-card.home-category-card:hover,
+.category-card.home-category-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px rgba(72, 55, 35, 0.12);
+  border-color: #cdb895;
+}
+
+.category-card.home-category-card .category-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+}
+
+.category-card.home-category-card .category-copy {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+}
+
+.category-card.home-category-card .category-copy strong {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.category-card.home-category-card .category-copy span {
+  color: #6b5947;
+  font-size: 0.88rem;
+}
+
+.category-card.home-category-card .card-cta {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.empty-category-note {
+  margin: 0;
+  color: #6b5947;
+  font-size: 0.92rem;
 }
 
 .category-card,
@@ -401,7 +477,6 @@ button:hover {
   display: grid;
   gap: 10px;
   cursor: pointer;
-  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
 }
 
 .category-card:hover,
@@ -555,6 +630,7 @@ button:hover {
   padding: 0;
   cursor: pointer;
   overflow: hidden;
+  text-decoration: none;
 }
 
 .product-card:hover,
@@ -1125,16 +1201,14 @@ button:hover {
   }
 }
 
-@media (min-width: 1180px) {
-  .calendar-panel {
-    grid-column: span 2;
-  }
-}
-
 @media (max-width: 760px) {
   .auth-bar {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .app-top-grid {
+    grid-template-columns: 1fr;
   }
 
   .section-header {

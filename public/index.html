@@ -29,93 +29,73 @@
       </section>
     </main>
 
-    <main id="app-layout" class="layout hidden">
-      <section class="panel">
-        <h2 id="reservation-form-title">Nueva reserva</h2>
-        <form id="reservation-form">
-          <input type="hidden" name="startDate" />
-          <input type="hidden" name="endDate" />
-          <input type="hidden" name="status" value="confirmed" />
-          <input type="hidden" name="warehouseId" value="" />
-          <label>Novios<input name="customerName" required /></label>
-          <label>Fecha evento<input type="date" name="eventDate" id="event-date-input" required /></label>
-          <label>Lugar del evento
-            <select name="eventLocation" id="event-location-select" required>
-              <option value="">Selecciona un lugar</option>
-              <option value="noviciado">Noviciado</option>
-              <option value="casa-amelia">Casa Amelia</option>
-              <option value="alto-san-fco">Alto San Fco</option>
-              <option value="entremuros">Entremuros</option>
-              <option value="vina-santa-rita">Viña Santa Rita</option>
-              <option value="reina-sur">Reina Sur</option>
-              <option value="hacienda-porvenir">Hacienda Porvenir</option>
-              <option value="otro">Otro</option>
-            </select>
-          </label>
-          <label>Banquetero a cargo
-            <select name="banquetero" id="banquetero-select" required>
-              <option value="">Selecciona una persona</option>
-              <option value="juan-pablo">Juan Pablo</option>
-              <option value="amelita">Amelita</option>
-              <option value="senora-amelia">Señora Amelia</option>
-            </select>
-          </label>
-          <fieldset class="reservation-categories" aria-labelledby="reservation-categories-title">
-            <legend id="reservation-categories-title">Categorías</legend>
-            <div class="reservation-category-list">
-              <div class="reservation-category">
-                <span class="reservation-category-icon category-sillas" aria-hidden="true">SI</span>
-                <div class="reservation-category-copy">
-                  <strong>Sillas</strong>
-                </div>
+    <main id="app-layout" class="layout app-shell hidden">
+      <div class="app-top-grid">
+        <div class="app-left-column">
+          <section class="panel reservation-panel">
+            <h2 id="reservation-form-title">Nueva reserva</h2>
+            <form id="reservation-form">
+              <input type="hidden" name="startDate" />
+              <input type="hidden" name="endDate" />
+              <input type="hidden" name="status" value="confirmed" />
+              <input type="hidden" name="warehouseId" value="" />
+              <label>Novios<input name="customerName" required /></label>
+              <label>Fecha evento<input type="date" name="eventDate" id="event-date-input" required /></label>
+              <label>Lugar del evento
+                <select name="eventLocation" id="event-location-select" required>
+                  <option value="">Selecciona un lugar</option>
+                  <option value="noviciado">Noviciado</option>
+                  <option value="casa-amelia">Casa Amelia</option>
+                  <option value="alto-san-fco">Alto San Fco</option>
+                  <option value="entremuros">Entremuros</option>
+                  <option value="vina-santa-rita">Viña Santa Rita</option>
+                  <option value="reina-sur">Reina Sur</option>
+                  <option value="hacienda-porvenir">Hacienda Porvenir</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </label>
+              <label>Banquetero a cargo
+                <select name="banquetero" id="banquetero-select" required>
+                  <option value="">Selecciona una persona</option>
+                  <option value="juan-pablo">Juan Pablo</option>
+                  <option value="amelita">Amelita</option>
+                  <option value="senora-amelia">Señora Amelia</option>
+                </select>
+              </label>
+              <label>Notas<textarea name="notes" rows="2"></textarea></label>
+              <button id="reservation-submit-btn" type="submit">Guardar reserva</button>
+              <button id="cancel-edit-btn" type="button" class="secondary hidden">Cancelar edición</button>
+            </form>
+            <p id="form-status" class="status"></p>
+          </section>
+
+          <section class="panel categories-panel">
+            <div class="section-header">
+              <div>
+                <h2>Catálogo por categorías</h2>
+                <p class="catalog-hint">Abre una categoría para ver sus productos en otra pestaña. El home solo muestra estas categorías.</p>
               </div>
-              <div class="reservation-category">
-                <span class="reservation-category-icon category-plaque" aria-hidden="true">PL</span>
-                <div class="reservation-category-copy">
-                  <strong>Plaqué</strong>
-                </div>
-              </div>
-              <div class="reservation-category">
-                <span class="reservation-category-icon category-sofa" aria-hidden="true">SO</span>
-                <div class="reservation-category-copy">
-                  <strong>Sofá negro</strong>
-                </div>
-              </div>
+              <button id="back-to-categories-btn" type="button" class="secondary hidden">Volver al inicio</button>
             </div>
-          </fieldset>
-          <div id="item-rows"></div>
-          <label>Notas<textarea name="notes" rows="2"></textarea></label>
-          <button id="reservation-submit-btn" type="submit">Guardar reserva</button>
-          <button id="cancel-edit-btn" type="button" class="secondary hidden">Cancelar edición</button>
-        </form>
-        <p id="form-status" class="status"></p>
-      </section>
-
-      <section class="panel calendar-panel">
-        <h2>Calendario de reservas</h2>
-        <div class="calendar-nav">
-          <button id="prev-month" type="button">Mes anterior</button>
-          <strong id="month-label"></strong>
-          <button id="next-month" type="button">Mes siguiente</button>
+            <div id="category-grid" class="category-grid"></div>
+            <div id="category-products-view" class="hidden">
+              <h3 id="category-products-title" class="category-products-title"></h3>
+              <div id="category-products" class="catalog"></div>
+            </div>
+          </section>
         </div>
-        <div id="calendar-weekdays" class="calendar-weekdays"></div>
-        <div id="calendar-grid" class="calendar-grid"></div>
-      </section>
 
-      <section class="panel">
-        <div class="section-header">
-          <div>
-            <h2>Catálogo por categorías</h2>
-            <p class="catalog-hint">Primero eliges una categoría, luego abres el producto que te interesa.</p>
+        <section class="panel calendar-panel">
+          <h2>Calendario de reservas</h2>
+          <div class="calendar-nav">
+            <button id="prev-month" type="button">Mes anterior</button>
+            <strong id="month-label"></strong>
+            <button id="next-month" type="button">Mes siguiente</button>
           </div>
-          <button id="back-to-categories-btn" type="button" class="secondary hidden">Volver a categorías</button>
-        </div>
-        <div id="category-grid" class="category-grid"></div>
-        <div id="category-products-view" class="hidden">
-          <h3 id="category-products-title" class="category-products-title"></h3>
-          <div id="category-products" class="catalog"></div>
-        </div>
-      </section>
+          <div id="calendar-weekdays" class="calendar-weekdays"></div>
+          <div id="calendar-grid" class="calendar-grid"></div>
+        </section>
+      </div>
 
       <section class="panel full">
         <div class="section-header">
