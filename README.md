@@ -45,7 +45,7 @@ Abrir en navegador: `http://localhost:4780`
 - El estado de autorización se copia dentro de la reserva para que cada ítem muestre su propio estado.
 - Las categorías del inventario son cerradas: `Sillas`, `Platos`, `Lounge`, `Manteleria`, `Bares` y `Plaqué`.
 - El selector de cojín solo aparece para productos de categoría `Sillas`; en cualquier otra categoría queda apagado y se guarda como `No usa`.
-- El home solo muestra el catálogo por categorías en el bloque inferior izquierdo. Cada tarjeta de categoría abre sus productos en la misma vista, cada producto muestra un input de cantidad y desde ahí cada ficha sigue abriéndose en una pestaña nueva; el stock diario solo aparece al abrir un producto en una fecha específica.
+- El home solo muestra el catálogo por categorías en el bloque inferior izquierdo. Cada tarjeta de categoría abre una ventana nueva con sus productos, cada producto muestra un input de cantidad y desde ahí cada ficha sigue abriéndose en una pestaña nueva; el stock diario solo aparece al abrir un producto en una fecha específica.
 
 ## Cargar/editar ítems
 

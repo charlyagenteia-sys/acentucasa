@@ -801,8 +801,10 @@ function renderHomeCatalog() {
     button.addEventListener("click", () => {
       const category = button.getAttribute("data-category");
       const categoryUrl = buildCatalogCategoryUrl(category);
-      openCategory(category);
-      window.history.pushState({ category }, "", categoryUrl);
+      const opened = window.open(categoryUrl, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        window.location.assign(categoryUrl);
+      }
     });
   });
 }
