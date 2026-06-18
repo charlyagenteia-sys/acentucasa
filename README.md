@@ -11,6 +11,8 @@ App local para gestionar reservas por fecha, controlar stock diario y visualizar
 - Persistencia en disco en archivos JSON.
 - Asignación de bodega por producto y estado de autorización por ítem, visible dentro de la reserva.
 - La portada muestra `Nueva reserva` arriba a la izquierda, `Categorías` debajo y el `Calendario de reservas` a la derecha; al abrir una categoría se muestran sus productos con cantidad editable y la reserva se guarda desde el botón superior.
+- Al abrir una categoría en ventana aparte, la vista muestra solo los productos de esa categoría y un botón mínimo `Home`; al guardar, vuelve al home para seguir con otras categorías.
+- La vista standalone de categoría usa cards compactas para que entren más productos en pantalla y el scroll sea el mínimo posible.
 
 ## Estructura
 
@@ -43,7 +45,7 @@ Abrir en navegador: `http://localhost:4780`
 - Cada producto tiene una bodega asignada en `data/items.json` y las opciones vigentes son `Ppal Izco`, `JP`, `Amelita` y `Mamá`.
 - Cada producto también puede marcarse como `requiere autorización`, asignar un usuario autorizado y dejar su estado en `pending` o `confirmed`.
 - El estado de autorización se copia dentro de la reserva para que cada ítem muestre su propio estado.
-- Las categorías del inventario son cerradas: `Sillas`, `Platos`, `Lounge`, `Manteleria`, `Bares` y `Plaqué`.
+- Las categorías del inventario son cerradas: `Sillas`, `Platos`, `Lounge`, `Manteleria`, `Bares`, `Plaqué` y `Carpa India`.
 - El selector de cojín solo aparece para productos de categoría `Sillas`; en cualquier otra categoría queda apagado y se guarda como `No usa`.
 - El home solo muestra el catálogo por categorías en el bloque inferior izquierdo. Cada tarjeta de categoría abre una ventana nueva con sus productos, cada producto muestra un input de cantidad y desde ahí cada ficha sigue abriéndose en una pestaña nueva; el stock diario solo aparece al abrir un producto en una fecha específica.
 
@@ -74,6 +76,7 @@ Las categorías vigentes del catálogo son:
 - `Manteleria`
 - `Bares`
 - `Plaqué`
+- `Carpa India`
 
 Para fotos, el modal acepta:
 - arrastrar y soltar una imagen sobre la caja de carga

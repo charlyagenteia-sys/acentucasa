@@ -241,5 +241,25 @@
     ],
     "createdAt": "2026-06-16T09:35:00.000Z",
     "updatedAt": "2026-06-16T09:35:00.000Z"
+  },
+  {
+    "id": "item-carpa-india-10x20",
+    "name": "Carpa de 10 x 20 metros",
+    "category": "Carpa India",
+    "size": "10 x 20 m",
+    "stockTotal": 2,
+    "unitPriceCLP": 0,
+    "warehouseId": "jp",
+    "authorizationRequired": true,
+    "authorizationStatus": "pending",
+    "authorizationOwnerUsername": "jpi",
+    "cushionOption": "none",
+    "imageRef": "",
+    "properties": [
+      "Uso: carpa",
+      "Requiere autorización"
+    ],
+    "createdAt": "2026-06-17T23:14:00.000Z",
+    "updatedAt": "2026-06-17T23:14:00.000Z"
   }
 ]

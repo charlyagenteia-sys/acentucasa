@@ -14,6 +14,7 @@ const categoryGridEl = document.getElementById("category-grid");
 const categoryProductsViewEl = document.getElementById("category-products-view");
 const categoryProductsTitleEl = document.getElementById("category-products-title");
 const categoryProductsEl = document.getElementById("category-products");
+const catalogStandaloneNavEl = document.getElementById("catalog-standalone-nav");
 const backToCategoriesBtnEl = document.getElementById("back-to-categories-btn");
 const catalogSaveBtnEl = document.getElementById("catalog-save-btn");
 const productDetailEl = document.getElementById("product-detail");
@@ -71,12 +72,14 @@ const CATALOG_DRAFT_STORAGE_KEY = "catalog_quantity_draft_v1";
 const catalogQuantityByItemId = new Map();
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const ACTIVE_STOCK_STATUSES = new Set(["pending", "confirmed", "delivered"]);
-const INVENTORY_CATEGORIES = ["Sillas", "Platos", "Lounge", "Manteleria", "Bares", "Plaqué"];
+const INVENTORY_CATEGORIES = ["Sillas", "Platos", "Lounge", "Manteleria", "Bares", "Plaqué", "Carpa India"];
 const INVENTORY_CATEGORY_LABELS = new Map(INVENTORY_CATEGORIES.map((category) => [category.toLowerCase(), category]));
 const INVENTORY_CATEGORY_ALIASES = new Map([
   ["fuentes", "Plaqué"],
   ["bandejas", "Plaqué"],
-  ["plaque", "Plaqué"]
+  ["plaque", "Plaqué"],
+  ["carpa india", "Carpa India"],
+  ["carpa-india", "Carpa India"]
 ]);
 const AUTHORIZATION_OWNER_OPTIONS = [
   { value: "", label: "Sin usuario" },
@@ -255,21 +258,35 @@ function persistCatalogDraft() {
 
 function saveCatalogDraftAndClose() {
   persistCatalogDraft();
-  if (window.opener && !window.opener.closed) {
+  returnToCatalogHome();
+}
+
+function returnToCatalogHome() {
+  const homeUrl = window.location.pathname;
+
+  if (catalogStandaloneMode && window.opener && !window.opener.closed) {
     try {
       window.opener.focus();
     } catch (_error) {
       // No-op.
     }
+    try {
+      window.close();
+    } catch (_error) {
+      // No-op.
+    }
+    if (!window.closed) {
+      window.location.assign(homeUrl);
+    }
+    return;
   }
+
   try {
-    window.close();
+    window.history.pushState({}, "", homeUrl);
   } catch (_error) {
     // No-op.
   }
-  if (!window.closed) {
-    window.location.assign(window.location.pathname);
-  }
+  void applyCatalogRouteFromLocation();
 }
 
 function getApprovalLabel(approvalStatus) {
@@ -795,12 +812,14 @@ function getCategoryIconLabel(category) {
   if (normalized === "Manteleria") return "MA";
   if (normalized === "Bares") return "BA";
   if (normalized === "Plaqué") return "PQ";
+  if (normalized === "Carpa India") return "CI";
   return "??";
 }
 
 function getCategoryIconSlug(category) {
   const normalized = normalizeInventoryCategory(category);
   if (normalized === "Plaqué") return "plaque";
+  if (normalized === "Carpa India") return "carpa-india";
   return normalized.toLowerCase();
 }
 
@@ -843,11 +862,16 @@ function setCatalogVisibility({ categoryVisible = true, productsVisible = false,
   if (productDetailEl) {
     productDetailEl.classList.toggle("hidden", !detailVisible);
   }
+  if (catalogStandaloneNavEl) {
+    catalogStandaloneNavEl.classList.toggle("hidden", !catalogStandaloneMode);
+  }
   if (backToCategoriesBtnEl) {
-    backToCategoriesBtnEl.classList.toggle("hidden", catalogStandaloneMode || (!productsVisible && !detailVisible));
+    backToCategoriesBtnEl.classList.toggle("hidden", !catalogStandaloneMode && (!productsVisible && !detailVisible));
+    backToCategoriesBtnEl.textContent = catalogStandaloneMode ? "Home" : "Volver al menú principal";
   }
   if (catalogSaveBtnEl) {
     catalogSaveBtnEl.classList.toggle("hidden", !catalogStandaloneMode || !productsVisible);
+    catalogSaveBtnEl.textContent = catalogStandaloneMode ? "Guardar y volver" : "Guardar y cerrar";
   }
   if (closeProductDetailBtnEl) {
     closeProductDetailBtnEl.classList.toggle("hidden", !detailVisible);
@@ -895,7 +919,7 @@ function renderCategoryProducts() {
 
   const category = normalizeInventoryCategory(activeCategory);
   const categoryItems = getCategoryItems(category);
-  categoryProductsTitleEl.textContent = category ? `${category} · selecciona cantidades` : "";
+  categoryProductsTitleEl.textContent = catalogStandaloneMode ? "" : (category ? `${category} · selecciona cantidades` : "");
 
   if (categoryItems.length === 0) {
     categoryProductsEl.innerHTML = "<p>No hay productos en esta categoría.</p>";
@@ -1689,8 +1713,7 @@ if (inventoryCategorySelectEl) {
 }
 if (backToCategoriesBtnEl) {
   backToCategoriesBtnEl.addEventListener("click", () => {
-    window.history.pushState({}, "", window.location.pathname);
-    void applyCatalogRouteFromLocation();
+    returnToCatalogHome();
   });
 }
 if (catalogSaveBtnEl) {
