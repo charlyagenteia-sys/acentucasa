@@ -393,6 +393,18 @@ button:hover {
   font-size: 0.82rem;
 }
 
+.card-stock-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: #6b5947;
+}
+
+.card-stock-meta strong {
+  color: #3f3325;
+}
+
 .embedded-catalog-panel {
   margin: 10px 0 14px;
 }

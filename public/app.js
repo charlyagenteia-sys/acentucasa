@@ -73,6 +73,7 @@ let activeProductStockDate = todayISO;
 const catalogStandaloneMode = new URLSearchParams(window.location.search).get("standalone") === "1";
 const CATALOG_DRAFT_STORAGE_KEY = "catalog_quantity_draft_v1";
 const catalogQuantityByItemId = new Map();
+const catalogAvailabilityByItemId = new Map();
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const ACTIVE_STOCK_STATUSES = new Set(["pending", "confirmed", "delivered"]);
 const INVENTORY_CATEGORIES = ["Sillas", "Platos", "Lounge", "Manteleria", "Bares", "Plaqué", "Carpa India"];
@@ -262,6 +263,35 @@ function persistCatalogDraft() {
   } catch (_error) {
     // Ignore storage failures.
   }
+}
+
+function getCatalogAvailabilityDate() {
+  const value = eventDateInputEl ? String(eventDateInputEl.value || "").trim() : "";
+  return value || todayISO;
+}
+
+async function loadCatalogAvailability(dateISO = getCatalogAvailabilityDate()) {
+  if (!items.length) {
+    catalogAvailabilityByItemId.clear();
+    return;
+  }
+
+  const payload = await api(`/api/items?startDate=${encodeURIComponent(dateISO)}&endDate=${encodeURIComponent(dateISO)}`);
+  catalogAvailabilityByItemId.clear();
+  for (const item of payload) {
+    catalogAvailabilityByItemId.set(item.id, {
+      reservedInRange: Number(item.reservedInRange || 0),
+      availableInRange: Number(item.availableInRange ?? item.stockTotal ?? 0)
+    });
+  }
+}
+
+function refreshCatalogAvailabilityView() {
+  void loadCatalogAvailability().then(() => {
+    if (activeCategory) {
+      renderCategoryProducts();
+    }
+  });
 }
 
 function saveCatalogDraftAndClose() {
@@ -687,9 +717,7 @@ function fillFormFromReservation(reservation) {
   }
   form.elements.notes.value = reservation.notes || "";
   hydrateCatalogQuantitiesFromReservation(reservation.items || []);
-  if (activeCategory) {
-    renderCategoryProducts();
-  }
+  refreshCatalogAvailabilityView();
 }
 
 function resetFormForCreateMode(options = {}) {
@@ -715,7 +743,7 @@ function resetFormForCreateMode(options = {}) {
   setEditMode(null);
   updateWarehouseAlert();
   if (activeCategory) {
-    renderCategoryProducts();
+    refreshCatalogAvailabilityView();
   }
 }
 
@@ -1041,8 +1069,10 @@ function renderCategoryProducts() {
   }
 
   categoryProductsEl.innerHTML = categoryItems
-    .map(
-      (item) => `
+    .map((item) => {
+      const availability = catalogAvailabilityByItemId.get(item.id) || {};
+      const reservedInRange = Number(availability.reservedInRange || 0);
+      return `
         <article class="product-card">
           <a
             class="product-card-link"
@@ -1062,6 +1092,14 @@ function renderCategoryProducts() {
               <div class="card-meta">
                 <div>${escapeHtml(item.size)}</div>
                 <div>${escapeHtml(getWarehouseLabel(item.warehouseId))}</div>
+                <div class="card-stock-meta">
+                  <span>Stock total</span>
+                  <strong>${escapeHtml(item.stockTotal)}</strong>
+                </div>
+                <div class="card-stock-meta">
+                  <span>Reservado</span>
+                  <strong>${escapeHtml(reservedInRange)}</strong>
+                </div>
                 <div class="card-cta">Abrir ficha en pestaña nueva</div>
               </div>
             </div>
@@ -1082,8 +1120,8 @@ function renderCategoryProducts() {
             </label>
           </div>
         </article>
-      `
-    )
+      `;
+    })
     .join("");
 
   categoryProductsEl.querySelectorAll(".product-qty-input").forEach((input) => {
@@ -1286,6 +1324,10 @@ async function loadReservations() {
   if (reservations.length === 0) {
     reservationsEl.innerHTML = "<p>No hay reservas aún.</p>";
     renderReservationDetail();
+    await loadCatalogAvailability();
+    if (activeCategory) {
+      renderCategoryProducts();
+    }
     return;
   }
 
@@ -1353,6 +1395,10 @@ async function loadReservations() {
   });
 
   renderReservationDetail();
+  await loadCatalogAvailability();
+  if (activeCategory) {
+    renderCategoryProducts();
+  }
 }
 
 async function loadCalendar() {
@@ -1829,6 +1875,11 @@ if (inventoryForm.elements.authorizationStatus) {
 if (inventoryCategorySelectEl) {
   inventoryCategorySelectEl.addEventListener("change", () => {
     syncInventoryCushionState();
+  });
+}
+if (eventDateInputEl) {
+  eventDateInputEl.addEventListener("change", async () => {
+    refreshCatalogAvailabilityView();
   });
 }
 if (inventoryWarehouseSelectEl) {
