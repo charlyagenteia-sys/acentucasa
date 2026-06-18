@@ -276,13 +276,22 @@ async function loadCatalogAvailability(dateISO = getCatalogAvailabilityDate()) {
     return;
   }
 
-  const payload = await api(`/api/items?startDate=${encodeURIComponent(dateISO)}&endDate=${encodeURIComponent(dateISO)}`);
-  catalogAvailabilityByItemId.clear();
-  for (const item of payload) {
-    catalogAvailabilityByItemId.set(item.id, {
-      reservedInRange: Number(item.reservedInRange || 0),
-      availableInRange: Number(item.availableInRange ?? item.stockTotal ?? 0)
+  try {
+    const payload = await api(`/api/items?startDate=${encodeURIComponent(dateISO)}&endDate=${encodeURIComponent(dateISO)}`, {
+      allowUnauthorizedResponse: true
     });
+    if (!Array.isArray(payload)) {
+      return;
+    }
+    catalogAvailabilityByItemId.clear();
+    for (const item of payload) {
+      catalogAvailabilityByItemId.set(item.id, {
+        reservedInRange: Number(item.reservedInRange || 0),
+        availableInRange: Number(item.availableInRange ?? item.stockTotal ?? 0)
+      });
+    }
+  } catch (_error) {
+    // If the refresh fails, keep the last visible stock instead of dropping to zero or forcing a logout.
   }
 }
 
