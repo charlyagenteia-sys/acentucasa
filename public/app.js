@@ -15,6 +15,7 @@ const categoryProductsViewEl = document.getElementById("category-products-view")
 const categoryProductsTitleEl = document.getElementById("category-products-title");
 const categoryProductsEl = document.getElementById("category-products");
 const catalogStandaloneNavEl = document.getElementById("catalog-standalone-nav");
+const catalogCurrentCategoryEl = document.getElementById("catalog-current-category");
 const backToCategoriesBtnEl = document.getElementById("back-to-categories-btn");
 const catalogSaveBtnEl = document.getElementById("catalog-save-btn");
 const productDetailEl = document.getElementById("product-detail");
@@ -865,6 +866,11 @@ function setCatalogVisibility({ categoryVisible = true, productsVisible = false,
   if (catalogStandaloneNavEl) {
     catalogStandaloneNavEl.classList.toggle("hidden", !catalogStandaloneMode);
   }
+  if (catalogCurrentCategoryEl) {
+    const categoryLabel = normalizeInventoryCategory(activeCategory);
+    catalogCurrentCategoryEl.textContent = catalogStandaloneMode && categoryLabel ? categoryLabel : "";
+    catalogCurrentCategoryEl.classList.toggle("hidden", !catalogStandaloneMode || !categoryLabel);
+  }
   if (backToCategoriesBtnEl) {
     backToCategoriesBtnEl.classList.toggle("hidden", !catalogStandaloneMode && (!productsVisible && !detailVisible));
     backToCategoriesBtnEl.textContent = catalogStandaloneMode ? "Home" : "Volver al menú principal";
@@ -920,6 +926,10 @@ function renderCategoryProducts() {
   const category = normalizeInventoryCategory(activeCategory);
   const categoryItems = getCategoryItems(category);
   categoryProductsTitleEl.textContent = catalogStandaloneMode ? "" : (category ? `${category} · selecciona cantidades` : "");
+  if (catalogCurrentCategoryEl) {
+    catalogCurrentCategoryEl.textContent = catalogStandaloneMode && category ? category : "";
+    catalogCurrentCategoryEl.classList.toggle("hidden", !catalogStandaloneMode || !category);
+  }
 
   if (categoryItems.length === 0) {
     categoryProductsEl.innerHTML = "<p>No hay productos en esta categoría.</p>";

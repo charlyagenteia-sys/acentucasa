@@ -441,6 +441,8 @@ body.catalog-standalone .app-shell {
 .catalog-standalone-nav {
   display: flex;
   justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 4px;
   position: sticky;
   top: 4px;
@@ -466,6 +468,21 @@ body.catalog-standalone .app-shell {
   box-shadow: 0 10px 18px rgba(72, 55, 35, 0.14);
 }
 
+.catalog-current-category {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #d1c0a2;
+  background: #f8efe0;
+  color: #6a5339;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 body.catalog-standalone .catalog-hint {
   max-width: 54ch;
 }
@@ -475,6 +492,10 @@ body.catalog-standalone .section-header {
 }
 
 body.catalog-standalone .category-products-title {
+  display: none;
+}
+
+body.catalog-standalone .category-grid {
   display: none;
 }
 
