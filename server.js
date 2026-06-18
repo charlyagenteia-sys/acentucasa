@@ -25,6 +25,16 @@ const INVENTORY_CATEGORY_ALIASES = new Map([
   ["carpa india", "Carpa India"],
   ["carpa-india", "Carpa India"]
 ]);
+const WAREHOUSE_AUTHORIZATION_RULES = new Map([
+  ["jp", { required: true, ownerUsername: "jpi" }],
+  ["amelita", { required: true, ownerUsername: "amelita" }],
+  ["mama", { required: true, ownerUsername: "sraame" }]
+]);
+const AUTHORIZATION_OWNER_DISPLAY_NAMES = new Map([
+  ["jpi", "Juan Pablo"],
+  ["amelita", "Amelita"],
+  ["sraame", "Señora Amelia"]
+]);
 
 const AUTH_USERS = [
   { username: "lula", displayName: "Lula", password: "lula321", role: "operator" },
@@ -133,10 +143,14 @@ function normalizeLoadedInventoryItem(item) {
 
   const category = normalizeInventoryCategory(item.category);
   const cushionOption = normalizeCushionOption(item.cushionOption, category);
+  const authorization = getWarehouseAuthorizationState(item.warehouseId, item.authorizationStatus);
   return {
     ...item,
     category,
-    cushionOption: cushionOption === null ? "none" : cushionOption
+    cushionOption: cushionOption === null ? "none" : cushionOption,
+    authorizationRequired: authorization.authorizationRequired,
+    authorizationStatus: authorization.authorizationStatus,
+    authorizationOwnerUsername: authorization.authorizationOwnerUsername
   };
 }
 
@@ -467,8 +481,30 @@ function normalizeAuthorizationStatus(rawValue, authorizationRequired) {
 }
 
 function getAuthorizationOwnerLabel(username) {
-  const user = getUserByUsername(username);
-  return user ? user.displayName : "Sin usuario";
+  const normalized = String(username || "").trim().toLowerCase();
+  if (!normalized) {
+    return "Sin usuario";
+  }
+  return AUTHORIZATION_OWNER_DISPLAY_NAMES.get(normalized) || getUserByUsername(normalized)?.displayName || "Sin usuario";
+}
+
+function getWarehouseAuthorizationState(warehouseId, currentStatus = "pending") {
+  const normalizedWarehouseId = resolveWarehouseId(warehouseId);
+  const rule = WAREHOUSE_AUTHORIZATION_RULES.get(normalizedWarehouseId) || null;
+  if (!rule) {
+    return {
+      authorizationRequired: false,
+      authorizationOwnerUsername: "",
+      authorizationStatus: "not_required"
+    };
+  }
+
+  const normalizedStatus = String(currentStatus || "").trim().toLowerCase();
+  return {
+    authorizationRequired: true,
+    authorizationOwnerUsername: rule.ownerUsername,
+    authorizationStatus: ["pending", "confirmed"].includes(normalizedStatus) ? normalizedStatus : "pending"
+  };
 }
 
 function normalizeCushionOption(rawValue, category) {
@@ -494,9 +530,6 @@ function validateInventoryItemPayload(payload) {
   const imageRef = String(payload.imageRef || "").trim();
   const warehouseId = resolveWarehouseId(payload.warehouseId);
   const cushionOption = normalizeCushionOption(payload.cushionOption, category);
-  const authorizationRequired = normalizeBoolean(payload.authorizationRequired);
-  const authorizationOwnerUsername = normalizeAuthorizationOwnerUsername(payload.authorizationOwnerUsername);
-  const authorizationStatus = normalizeAuthorizationStatus(payload.authorizationStatus, authorizationRequired);
 
   const stockTotal = Number(payload.stockTotal);
   const unitPriceCLP = Number(payload.unitPriceCLP);
@@ -522,12 +555,8 @@ function validateInventoryItemPayload(payload) {
   if (cushionOption === null) {
     return { error: "cushionOption invalido" };
   }
-  if (authorizationRequired && !authorizationOwnerUsername) {
-    return { error: "authorizationOwnerUsername es obligatorio cuando requiere autorizacion" };
-  }
-  if (authorizationOwnerUsername && !getUserByUsername(authorizationOwnerUsername)) {
-    return { error: `authorizationOwnerUsername no existe: ${authorizationOwnerUsername}` };
-  }
+
+  const authorization = getWarehouseAuthorizationState(warehouseId, payload.authorizationStatus);
 
   return {
     name,
@@ -537,9 +566,9 @@ function validateInventoryItemPayload(payload) {
     unitPriceCLP,
     warehouseId,
     cushionOption,
-    authorizationRequired,
-    authorizationStatus,
-    authorizationOwnerUsername: authorizationRequired ? authorizationOwnerUsername : "",
+    authorizationRequired: authorization.authorizationRequired,
+    authorizationStatus: authorization.authorizationStatus,
+    authorizationOwnerUsername: authorization.authorizationOwnerUsername,
     imageRef: imageRef || "",
     properties: normalizeInventoryProperties(payload.properties)
   };
@@ -632,17 +661,18 @@ app.get("/api/items", (req, res) => {
 
   const payload = items.map((item) => {
     const warehouse = warehouseMap.get(item.warehouseId) || null;
-    const authorizationRequired = Boolean(item.authorizationRequired);
-    const authorizationOwnerUsername = authorizationRequired ? String(item.authorizationOwnerUsername || "").trim().toLowerCase() : "";
+    const authorization = getWarehouseAuthorizationState(item.warehouseId, item.authorizationStatus);
     const out = {
       ...item,
       warehouseName: warehouse ? warehouse.name : "Sin bodega",
       imageUrl: mediaRefToUrl(item.imageRef),
       unitPriceLabel: formatCurrencyCLP(item.unitPriceCLP),
-      authorizationRequired,
-      authorizationStatus: authorizationRequired ? item.authorizationStatus || "pending" : "not_required",
-      authorizationOwnerUsername,
-      authorizationOwnerDisplayName: authorizationRequired ? getAuthorizationOwnerLabel(authorizationOwnerUsername) : ""
+      authorizationRequired: authorization.authorizationRequired,
+      authorizationStatus: authorization.authorizationStatus,
+      authorizationOwnerUsername: authorization.authorizationOwnerUsername,
+      authorizationOwnerDisplayName: authorization.authorizationRequired
+        ? getAuthorizationOwnerLabel(authorization.authorizationOwnerUsername)
+        : ""
     };
     if (reserved) {
       out.reservedInRange = reserved[item.id] || 0;

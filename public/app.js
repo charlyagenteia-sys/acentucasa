@@ -86,15 +86,20 @@ const INVENTORY_CATEGORY_ALIASES = new Map([
 ]);
 const AUTHORIZATION_OWNER_OPTIONS = [
   { value: "", label: "Sin usuario" },
-  { value: "lula", label: "Lula" },
+  { value: "jpi", label: "Juan Pablo" },
   { value: "amelita", label: "Amelita" },
-  { value: "sraame", label: "SraAme" },
+  { value: "sraame", label: "Señora Amelia" },
   { value: "nancy", label: "Nancy" },
   { value: "kathy", label: "Kathy" },
-  { value: "jpi", label: "JPI" },
+  { value: "lula", label: "Lula" },
   { value: "jeisson", label: "Jeisson" }
 ];
 const AUTHORIZATION_OWNER_LABELS = new Map(AUTHORIZATION_OWNER_OPTIONS.map((option) => [option.value, option.label]));
+const WAREHOUSE_AUTHORIZATION_RULES = new Map([
+  ["jp", { required: true, ownerUsername: "jpi" }],
+  ["amelita", { required: true, ownerUsername: "amelita" }],
+  ["mama", { required: true, ownerUsername: "sraame" }]
+]);
 const CUSHION_OPTIONS = new Map([
   ["none", "No usa"],
   ["white", "Blanco"],
@@ -352,14 +357,14 @@ function setInventoryAuthorizationRequired(required) {
   if (checkbox) {
     checkbox.checked = Boolean(required);
   }
-  syncInventoryAuthorizationState();
 }
 
 function setInventoryAuthorizationStatus(value = "pending") {
   if (inventoryForm.elements.authorizationStatus) {
-    inventoryForm.elements.authorizationStatus.value = ["pending", "confirmed"].includes(value) ? value : "pending";
+    inventoryForm.elements.authorizationStatus.value = ["pending", "confirmed", "not_required"].includes(value)
+      ? value
+      : "pending";
   }
-  syncInventoryAuthorizationState();
 }
 
 function getInventoryCushionOption() {
@@ -384,6 +389,25 @@ function getAuthorizationStatusLabel(value) {
 
 function getAuthorizationOwnerLabel(username) {
   return AUTHORIZATION_OWNER_LABELS.get(String(username || "").trim().toLowerCase()) || "Sin usuario";
+}
+
+function getWarehouseAuthorizationState(warehouseId, currentStatus = "pending") {
+  const normalizedWarehouseId = String(warehouseId || "").trim().toLowerCase();
+  const rule = WAREHOUSE_AUTHORIZATION_RULES.get(normalizedWarehouseId) || null;
+  if (!rule) {
+    return {
+      authorizationRequired: false,
+      authorizationOwnerUsername: "",
+      authorizationStatus: "not_required"
+    };
+  }
+
+  const normalizedStatus = String(currentStatus || "").trim().toLowerCase();
+  return {
+    authorizationRequired: true,
+    authorizationOwnerUsername: rule.ownerUsername,
+    authorizationStatus: ["pending", "confirmed"].includes(normalizedStatus) ? normalizedStatus : "pending"
+  };
 }
 
 function canAuthorizeItem(item) {
@@ -427,17 +451,22 @@ function renderAuthorizationOwnerSelect(selectedValue = "") {
     : "";
 }
 
-function syncInventoryAuthorizationState() {
-  const required = Boolean(inventoryForm.elements.authorizationRequired && inventoryForm.elements.authorizationRequired.checked);
+function syncInventoryAuthorizationState({ warehouseId = inventoryWarehouseSelectEl ? inventoryWarehouseSelectEl.value : "", authorizationStatus = null } = {}) {
+  const state = getWarehouseAuthorizationState(
+    warehouseId,
+    authorizationStatus !== null
+      ? authorizationStatus
+      : (inventoryForm.elements.authorizationStatus ? inventoryForm.elements.authorizationStatus.value : "pending")
+  );
+
+  setInventoryAuthorizationRequired(state.authorizationRequired);
   if (inventoryAuthorizationOwnerSelectEl) {
-    inventoryAuthorizationOwnerSelectEl.disabled = !required;
+    inventoryAuthorizationOwnerSelectEl.value = state.authorizationOwnerUsername;
   }
-  if (inventoryForm.elements.authorizationStatus) {
-    inventoryForm.elements.authorizationStatus.disabled = !required;
-    if (!required) {
-      inventoryForm.elements.authorizationStatus.value = "pending";
-    }
+  if (inventoryForm.elements.authorizationOwnerUsername) {
+    inventoryForm.elements.authorizationOwnerUsername.value = state.authorizationOwnerUsername;
   }
+  setInventoryAuthorizationStatus(state.authorizationStatus);
 }
 
 function fileToDataUrl(file) {
@@ -548,14 +577,13 @@ function resetInventoryForm() {
   inventoryModalSubtitleEl.textContent = "";
   inventorySaveBtn.textContent = "Guardar cambios";
   setInventoryCushionOption("none");
-  setInventoryAuthorizationRequired(false);
-  setInventoryAuthorizationStatus("pending");
   inventoryImageDropzoneEl.classList.remove("drag-over");
   setInventoryPreview("", "");
   renderInventoryWarehouseSelect();
   renderInventoryCategorySelect();
   renderAuthorizationOwnerSelect();
   syncInventoryCushionState();
+  syncInventoryAuthorizationState({ warehouseId: "", authorizationStatus: "pending" });
   setInventoryModalOpen(false);
 }
 
@@ -564,7 +592,7 @@ function fillInventoryForm(item) {
   clearInventoryDraftImage();
   editingInventoryId = item.id;
   inventoryModalTitleEl.textContent = "Editar inventario";
-  inventoryModalSubtitleEl.textContent = `${item.name} ${item.size}`;
+  inventoryModalSubtitleEl.textContent = `${item.name} ${item.size} · La autorización se define por la bodega.`;
   inventorySaveBtn.textContent = "Guardar cambios";
   inventoryForm.elements.id.value = item.id;
   inventoryForm.elements.name.value = item.name || "";
@@ -580,15 +608,14 @@ function fillInventoryForm(item) {
   inventoryForm.elements.properties.value = Array.isArray(item.properties) ? item.properties.join("\n") : "";
   inventoryForm.elements.imageRef.value = item.imageRef || "";
   setInventoryCushionOption(item.cushionOption || "none");
-  setInventoryAuthorizationRequired(Boolean(item.authorizationRequired));
   renderAuthorizationOwnerSelect(item.authorizationOwnerUsername || "");
-  if (inventoryAuthorizationOwnerSelectEl) {
-    inventoryAuthorizationOwnerSelectEl.value = item.authorizationOwnerUsername || "";
-  }
-  setInventoryAuthorizationStatus(item.authorizationStatus || "pending");
   inventoryFormStatus.textContent = "";
   inventoryFormStatus.classList.remove("error");
   setInventoryPreview(item.imageUrl || item.imageRef || "", `${item.name} ${item.size}`);
+  syncInventoryAuthorizationState({
+    warehouseId: item.warehouseId || "",
+    authorizationStatus: item.authorizationStatus || "pending"
+  });
   setInventoryModalOpen(true);
 }
 
@@ -602,7 +629,7 @@ function openNewInventoryEditor() {
   editingInventoryId = null;
   inventoryForm.reset();
   inventoryModalTitleEl.textContent = "Agregar producto";
-  inventoryModalSubtitleEl.textContent = "Completa los datos del nuevo producto para el catálogo.";
+  inventoryModalSubtitleEl.textContent = "Completa los datos del nuevo producto. La autorización se calcula sola según la bodega.";
   inventorySaveBtn.textContent = "Crear producto";
   inventoryForm.elements.id.value = "";
   inventoryForm.elements.name.value = "";
@@ -615,13 +642,12 @@ function openNewInventoryEditor() {
   inventoryForm.elements.properties.value = "";
   inventoryForm.elements.imageRef.value = "";
   setInventoryCushionOption("none");
-  setInventoryAuthorizationRequired(false);
   renderAuthorizationOwnerSelect("");
-  setInventoryAuthorizationStatus("pending");
   inventoryFormStatus.textContent = "";
   inventoryFormStatus.classList.remove("error");
   renderInventoryWarehouseSelect();
   setInventoryPreview("", "");
+  syncInventoryAuthorizationState({ warehouseId: "", authorizationStatus: "pending" });
   setInventoryModalOpen(true);
 }
 
@@ -1803,6 +1829,11 @@ if (inventoryForm.elements.authorizationStatus) {
 if (inventoryCategorySelectEl) {
   inventoryCategorySelectEl.addEventListener("change", () => {
     syncInventoryCushionState();
+  });
+}
+if (inventoryWarehouseSelectEl) {
+  inventoryWarehouseSelectEl.addEventListener("change", () => {
+    syncInventoryAuthorizationState({ authorizationStatus: "pending" });
   });
 }
 if (backToCategoriesBtnEl) {

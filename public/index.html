@@ -148,7 +148,8 @@
           <label>Bodega asignada
             <select name="warehouseId" id="inventory-warehouse-select" required></select>
           </label>
-          <fieldset class="choice-fieldset">
+          <p class="inventory-hint">La autorización se asigna automáticamente según la bodega.</p>
+          <fieldset class="choice-fieldset hidden" aria-hidden="true">
             <legend>Autorización</legend>
             <div class="choice-group choice-stack">
               <label class="choice-option inline">
@@ -162,6 +163,7 @@
               <label>
                 Estado de autorización
                 <select name="authorizationStatus">
+                  <option value="not_required">No requiere</option>
                   <option value="pending">Pendiente</option>
                   <option value="confirmed">Confirmado</option>
                 </select>

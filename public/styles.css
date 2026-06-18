@@ -387,6 +387,12 @@ button:hover {
   gap: 3px;
 }
 
+.inventory-hint {
+  margin: -2px 0 6px;
+  color: #6a5339;
+  font-size: 0.82rem;
+}
+
 .embedded-catalog-panel {
   margin: 10px 0 14px;
 }
