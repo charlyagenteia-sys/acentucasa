@@ -940,6 +940,7 @@ function navigateToCatalogCategory(category, { standalone = catalogStandaloneMod
   } catch (_error) {
     // No-op.
   }
+  persistCatalogDraft();
   void applyCatalogRouteFromLocation();
 }
 
@@ -975,12 +976,14 @@ function renderStandaloneCategoryNav() {
       if (!category) {
         return;
       }
+      persistCatalogDraft();
       navigateToCatalogCategory(category, { standalone: true });
     });
   });
   const homeButtonEl = catalogCurrentCategoryEl.querySelector('[data-action="home"]');
   if (homeButtonEl) {
     homeButtonEl.addEventListener("click", () => {
+      persistCatalogDraft();
       returnToCatalogHome();
     });
   }
@@ -1012,7 +1015,7 @@ function setCatalogVisibility({ categoryVisible = true, productsVisible = false,
   if (catalogSaveBtnEl) {
     const shouldShowCatalogAction = productsVisible && Boolean(normalizeInventoryCategory(activeCategory));
     catalogSaveBtnEl.classList.toggle("hidden", !shouldShowCatalogAction);
-    catalogSaveBtnEl.textContent = catalogStandaloneMode ? "Abrir categoría" : "Guardar y cerrar";
+    catalogSaveBtnEl.textContent = catalogStandaloneMode ? "Guardar" : "Guardar y cerrar";
   }
   if (closeProductDetailBtnEl) {
     closeProductDetailBtnEl.classList.toggle("hidden", !detailVisible);
@@ -1234,10 +1237,11 @@ async function loadProductStock() {
   </table>`;
 }
 
-function openCategory(category) {
+async function openCategory(category) {
   activeCategory = normalizeInventoryCategory(category);
   activeProductId = "";
   activeProductStockDate = todayISO;
+  await loadCatalogAvailability();
   renderCategoryProducts();
   setCatalogVisibility({ categoryVisible: false, productsVisible: true, detailVisible: false });
 }
@@ -1254,6 +1258,7 @@ async function openProduct(itemId) {
   }
   if (!activeCategory) {
     activeCategory = normalizeInventoryCategory(item.category);
+    await loadCatalogAvailability();
     renderCategoryProducts();
   }
   renderProductDetail();
@@ -1288,7 +1293,7 @@ async function applyCatalogRouteFromLocation() {
   }
 
   if (category) {
-    openCategory(category);
+    await openCategory(category);
   }
 
   if (productId) {
@@ -1904,11 +1909,7 @@ if (backToCategoriesBtnEl) {
 if (catalogSaveBtnEl) {
   catalogSaveBtnEl.addEventListener("click", () => {
     if (catalogStandaloneMode && activeCategory) {
-      const mainCategoryUrl = buildCatalogCategoryUrl(activeCategory, { standalone: false });
-      const opened = window.open(mainCategoryUrl, "_blank");
-      if (!opened) {
-        window.location.assign(mainCategoryUrl);
-      }
+      persistCatalogDraft();
       return;
     }
     saveCatalogDraftAndClose();
