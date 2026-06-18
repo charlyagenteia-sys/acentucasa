@@ -17,11 +17,13 @@ const INBOUND_MEDIA_DIR = path.resolve(process.env.APP_MEDIA_DIR || DEFAULT_MEDI
 const SESSION_COOKIE_NAME = "catalog_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 const SOURCE_DATA_DIR = path.join(__dirname, "data");
-const INVENTORY_CATEGORIES = ["Sillas", "Platos", "Lounge", "Manteleria", "Bares", "Plaqué"];
+const INVENTORY_CATEGORIES = ["Sillas", "Platos", "Lounge", "Manteleria", "Bares", "Plaqué", "Carpa India"];
 const INVENTORY_CATEGORY_ALIASES = new Map([
   ["fuentes", "Plaqué"],
   ["bandejas", "Plaqué"],
-  ["plaque", "Plaqué"]
+  ["plaque", "Plaqué"],
+  ["carpa india", "Carpa India"],
+  ["carpa-india", "Carpa India"]
 ]);
 
 const AUTH_USERS = [

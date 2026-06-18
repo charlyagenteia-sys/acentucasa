@@ -16,6 +16,8 @@ const categoryProductsTitleEl = document.getElementById("category-products-title
 const categoryProductsEl = document.getElementById("category-products");
 const catalogStandaloneNavEl = document.getElementById("catalog-standalone-nav");
 const catalogCurrentCategoryEl = document.getElementById("catalog-current-category");
+const catalogSectionTitleEl = document.getElementById("catalog-section-title");
+const catalogSectionSubtitleEl = document.getElementById("catalog-section-subtitle");
 const backToCategoriesBtnEl = document.getElementById("back-to-categories-btn");
 const catalogSaveBtnEl = document.getElementById("catalog-save-btn");
 const productDetailEl = document.getElementById("product-detail");
@@ -829,6 +831,13 @@ function getCategoryItems(category) {
   return items.filter((item) => normalizeInventoryCategory(item.category) === normalized);
 }
 
+function getCategorySummary(category) {
+  const categoryItems = getCategoryItems(category);
+  const productCount = categoryItems.length;
+  const stockTotal = categoryItems.reduce((sum, item) => sum + Number(item.stockTotal || 0), 0);
+  return { productCount, stockTotal };
+}
+
 function buildCatalogProductUrl(item) {
   const url = new URL(window.location.href);
   url.search = "";
@@ -853,6 +862,67 @@ function buildCatalogCategoryUrl(category, options = {}) {
   return url.toString();
 }
 
+function navigateToCatalogCategory(category, { standalone = catalogStandaloneMode } = {}) {
+  const url = new URL(window.location.href);
+  url.search = "";
+  const normalizedCategory = normalizeInventoryCategory(category);
+  if (normalizedCategory) {
+    url.searchParams.set("category", normalizedCategory);
+  }
+  if (standalone) {
+    url.searchParams.set("standalone", "1");
+  }
+  try {
+    window.history.pushState({}, "", url);
+  } catch (_error) {
+    // No-op.
+  }
+  void applyCatalogRouteFromLocation();
+}
+
+function renderStandaloneCategoryNav() {
+  if (!catalogCurrentCategoryEl) {
+    return;
+  }
+
+  const active = normalizeInventoryCategory(activeCategory);
+  const chips = INVENTORY_CATEGORIES.map((category) => {
+    const { productCount, stockTotal } = getCategorySummary(category);
+    const selected = category === active;
+    return `
+      <button type="button" class="catalog-category-chip ${selected ? "selected" : ""}" data-category="${escapeHtml(category)}" aria-pressed="${selected ? "true" : "false"}">
+        <span class="catalog-chip-icon category-${escapeHtml(getCategoryIconSlug(category))}">${escapeHtml(getCategoryIconLabel(category))}</span>
+        <span class="catalog-chip-copy">
+          <strong>${escapeHtml(category)}</strong>
+          <span>${productCount} productos · stock ${stockTotal}</span>
+        </span>
+      </button>
+    `;
+  }).join("");
+  const homeButton = `
+    <button type="button" class="secondary catalog-tab-button catalog-home-button" data-action="home">
+      Home
+    </button>
+  `;
+
+  catalogCurrentCategoryEl.innerHTML = `${chips}${homeButton}`;
+  catalogCurrentCategoryEl.querySelectorAll(".catalog-category-chip").forEach((button) => {
+    button.addEventListener("click", () => {
+      const category = button.getAttribute("data-category");
+      if (!category) {
+        return;
+      }
+      navigateToCatalogCategory(category, { standalone: true });
+    });
+  });
+  const homeButtonEl = catalogCurrentCategoryEl.querySelector('[data-action="home"]');
+  if (homeButtonEl) {
+    homeButtonEl.addEventListener("click", () => {
+      returnToCatalogHome();
+    });
+  }
+}
+
 function setCatalogVisibility({ categoryVisible = true, productsVisible = false, detailVisible = false } = {}) {
   if (categoryGridEl) {
     categoryGridEl.classList.toggle("hidden", !categoryVisible);
@@ -867,17 +937,19 @@ function setCatalogVisibility({ categoryVisible = true, productsVisible = false,
     catalogStandaloneNavEl.classList.toggle("hidden", !catalogStandaloneMode);
   }
   if (catalogCurrentCategoryEl) {
-    const categoryLabel = normalizeInventoryCategory(activeCategory);
-    catalogCurrentCategoryEl.textContent = catalogStandaloneMode && categoryLabel ? categoryLabel : "";
-    catalogCurrentCategoryEl.classList.toggle("hidden", !catalogStandaloneMode || !categoryLabel);
+    catalogCurrentCategoryEl.classList.toggle("hidden", !catalogStandaloneMode);
+    if (catalogStandaloneMode) {
+      renderStandaloneCategoryNav();
+    }
   }
   if (backToCategoriesBtnEl) {
-    backToCategoriesBtnEl.classList.toggle("hidden", !catalogStandaloneMode && (!productsVisible && !detailVisible));
+    backToCategoriesBtnEl.classList.toggle("hidden", catalogStandaloneMode || (!productsVisible && !detailVisible));
     backToCategoriesBtnEl.textContent = catalogStandaloneMode ? "Home" : "Volver al menú principal";
   }
   if (catalogSaveBtnEl) {
-    catalogSaveBtnEl.classList.toggle("hidden", !catalogStandaloneMode || !productsVisible);
-    catalogSaveBtnEl.textContent = catalogStandaloneMode ? "Guardar y volver" : "Guardar y cerrar";
+    const shouldShowCatalogAction = productsVisible && Boolean(normalizeInventoryCategory(activeCategory));
+    catalogSaveBtnEl.classList.toggle("hidden", !shouldShowCatalogAction);
+    catalogSaveBtnEl.textContent = catalogStandaloneMode ? "Abrir categoría" : "Guardar y cerrar";
   }
   if (closeProductDetailBtnEl) {
     closeProductDetailBtnEl.classList.toggle("hidden", !detailVisible);
@@ -925,11 +997,17 @@ function renderCategoryProducts() {
 
   const category = normalizeInventoryCategory(activeCategory);
   const categoryItems = getCategoryItems(category);
-  categoryProductsTitleEl.textContent = catalogStandaloneMode ? "" : (category ? `${category} · selecciona cantidades` : "");
-  if (catalogCurrentCategoryEl) {
-    catalogCurrentCategoryEl.textContent = catalogStandaloneMode && category ? category : "";
-    catalogCurrentCategoryEl.classList.toggle("hidden", !catalogStandaloneMode || !category);
+  const { productCount, stockTotal } = getCategorySummary(category);
+
+  if (catalogSectionTitleEl) {
+    catalogSectionTitleEl.textContent = catalogStandaloneMode && category ? category : "Catálogo por categorías";
   }
+  if (catalogSectionSubtitleEl) {
+    catalogSectionSubtitleEl.textContent = catalogStandaloneMode && category
+      ? `${productCount} productos · stock ${stockTotal}`
+      : "Abre una categoría para ver sus productos, ingresa cantidades por producto y guarda la reserva desde el bloque superior.";
+  }
+  categoryProductsTitleEl.textContent = "";
 
   if (categoryItems.length === 0) {
     categoryProductsEl.innerHTML = "<p>No hay productos en esta categoría.</p>";
@@ -1125,6 +1203,12 @@ async function applyCatalogRouteFromLocation() {
   if (!category && !productId) {
     activeCategory = "";
     activeProductId = "";
+    if (catalogSectionTitleEl) {
+      catalogSectionTitleEl.textContent = "Catálogo por categorías";
+    }
+    if (catalogSectionSubtitleEl) {
+      catalogSectionSubtitleEl.textContent = "Abre una categoría para ver sus productos, ingresa cantidades por producto y guarda la reserva desde el bloque superior.";
+    }
     renderHomeCatalog();
     setCatalogVisibility({ categoryVisible: true, productsVisible: false, detailVisible: false });
     return;
@@ -1728,6 +1812,14 @@ if (backToCategoriesBtnEl) {
 }
 if (catalogSaveBtnEl) {
   catalogSaveBtnEl.addEventListener("click", () => {
+    if (catalogStandaloneMode && activeCategory) {
+      const mainCategoryUrl = buildCatalogCategoryUrl(activeCategory, { standalone: false });
+      const opened = window.open(mainCategoryUrl, "_blank");
+      if (!opened) {
+        window.location.assign(mainCategoryUrl);
+      }
+      return;
+    }
     saveCatalogDraftAndClose();
   });
 }
@@ -1887,6 +1979,12 @@ async function loadInitialData() {
   activeCategory = "";
   activeProductId = "";
   activeProductStockDate = todayISO;
+  if (catalogSectionTitleEl) {
+    catalogSectionTitleEl.textContent = "Catálogo por categorías";
+  }
+  if (catalogSectionSubtitleEl) {
+    catalogSectionSubtitleEl.textContent = "Abre una categoría para ver sus productos, ingresa cantidades por producto y guarda la reserva desde el bloque superior.";
+  }
   renderHomeCatalog();
   setCatalogVisibility({ categoryVisible: true, productsVisible: false, detailVisible: false });
   await loadReservations();

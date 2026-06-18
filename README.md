@@ -11,7 +11,7 @@ App local para gestionar reservas por fecha, controlar stock diario y visualizar
 - Persistencia en disco en archivos JSON.
 - Asignación de bodega por producto y estado de autorización por ítem, visible dentro de la reserva.
 - La portada muestra `Nueva reserva` arriba a la izquierda, `Categorías` debajo y el `Calendario de reservas` a la derecha; al abrir una categoría se muestran sus productos con cantidad editable y la reserva se guarda desde el botón superior.
-- Al abrir una categoría en ventana aparte, la vista muestra solo los productos de esa categoría y un botón mínimo `Home`; al guardar, vuelve al home para seguir con otras categorías.
+- Al abrir una categoría en ventana aparte, la vista muestra una barra superior con accesos directos a las categorías y deja `Home` al final; al guardar o pulsar `Home`, vuelve al home para seguir con otras categorías.
 - La vista standalone de categoría usa cards compactas para que entren más productos en pantalla y el scroll sea el mínimo posible.
 
 ## Estructura
